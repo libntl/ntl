@@ -93,6 +93,7 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 'NTL_GF2X_ALTCODE'        => 'off',
 'NTL_GF2X_ALTCODE1'       => 'off',
 
+'NTL_RANDOM_AES256CTR'    => 'off',
 
 );
 

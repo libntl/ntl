@@ -46,6 +46,8 @@ NTL_ENABLE_AVX_FFT=off # implement the small-prime FFT using AVX
 
 NTL_AVOID_AVX512=off # avoid using 512-bit AVX registers
 
+NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
+
 
 ########## Here are more detailed description of these variables.
 
@@ -256,6 +258,22 @@ Even if available, this will avoid the use of 512-bit AVX registers.  This
 affects both Mat<zz_p> operations, as well as the AVX-based FFT (see above).
 
 
+########### Use AES-256-CTR based pseudorandom generator
+
+NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
+
+AES-256-CTR based pseudorandom generation may be faster than the
+default in case AES instruction set extensions are available on
+the processor and supported by the implementations.
+
+The implementation supports the following AES instruction set
+extensions if detected at build time:
+
+ x86         : AES-NI
+ linux-s390x : KMA
+
+Be aware of possible interoperability issues when changing
+the implementation of NTL's pseudorandom generator object.
 
 
 ########### Examples:
