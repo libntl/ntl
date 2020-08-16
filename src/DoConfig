@@ -583,8 +583,20 @@ sub Process_TUNE {
 	 $ConfigSub{'NTL_GF2X_ALTCODE'}        = 0,
 	 $ConfigSub{'NTL_GF2X_ALTCODE1'}       = 1,
       }
+      elsif ($MakeSub{'TUNE'} eq 'linux-s390x') {
+	 $ConfigSub{'NTL_SPMM_ULL'}            = 0,
+	 $ConfigSub{'NTL_AVOID_BRANCHING'}     = 1,
+	 $ConfigSub{'NTL_FFT_BIGTAB'}          = 1,
+	 $ConfigSub{'NTL_FFT_LAZYMUL'}         = 1,
+	 $ConfigSub{'NTL_TBL_REM'}             = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE'}         = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE_SMALL'}   = 0,
+	 $ConfigSub{'NTL_GF2X_NOINLINE'}       = 1,
+	 $ConfigSub{'NTL_GF2X_ALTCODE'}        = 0,
+	 $ConfigSub{'NTL_GF2X_ALTCODE1'}       = 0,
+      }
       else {
-	 die "Error: TUNE not in {auto,generic,x86}";
+	 die "Error: TUNE not in {auto,generic,x86,linux-s390x}";
       }
    }
 }
@@ -594,7 +606,7 @@ Process_TUNE();
 # we call this once here and then optionally again later
 # if the TUNE flag is not set on the command line
 # and the architecture is recognized (right now, only
-# x86 is recognized)
+# x86 and s390x are recognized)
 
 
 
@@ -617,7 +629,7 @@ unlink "need-to-run-configure";
 #get some rudimentary info from compiler
 # language_standard: one of 0, 1997, 2011, 2014, 2017.
 #   used to set -std= flag intelligently
-# cpu_type: one of x87, unknown 
+# cpu_type: one of x86, s390x, unknown
 #   used to set TUNE intelligently
 # compiler_name: one of gcc, clang, icc, unknown
 #   used to set floating point flags intelligently
@@ -634,16 +646,17 @@ if(system("$MakeSub{'MAKE_PROG'} GenConfigInfo >> CompilerOutput.log 2>&1")) {
 
 my $config_info = `./GenConfigInfo`;
 
-my ($compiler_name, $language_standard, $cpu_type);
-($compiler_name, $language_standard, $cpu_type) =
-   ($config_info =~ /\((.*?),(.*?),(.*?)\)/) or die "Error: GenConfigInfo failed";
+my ($compiler_name, $language_standard, $cpu_type, $os_name);
+($compiler_name, $language_standard, $cpu_type, $os_name) =
+   ($config_info =~ /\((.*?),(.*?),(.*?),(.*?)\)/) or die "Error: GenConfigInfo failed";
 
 # convert to number
 $language_standard += 0 or Warning("__cplusplus not correctly defined");
 
 print("compiler_name=$compiler_name\n");
 print("language_standard=$language_standard\n");
-print("cpu_type=$cpu_type\n\n");
+print("cpu_type=$cpu_type\n");
+print("os_name=$os_name\n\n");
 
 
 
@@ -651,7 +664,13 @@ if (!exists($Variable{'TUNE'})) {
    if ($cpu_type eq "x86") {
       $MakeSub{'TUNE'}='x86';
       Process_TUNE();
-      print "setting TUNE=x86\n\n";
+      print "setting TUNE=x86\n";
+   }
+   elsif ($cpu_type eq "s390x"
+         && $os_name eq "linux" && $compiler_name =~ /gcc|clang/) {
+      $MakeSub{'TUNE'}='linux-s390x';
+      Process_TUNE();
+      print "setting TUNE=linux-s390x\n";
    }
 }
 

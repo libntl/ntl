@@ -14,7 +14,7 @@ CXXFLAGS=-g -O2      # C++ complilation flags
 
 NATIVE=on            # compiles code targeted to current hardware
 
-TUNE=generic (or x86)# performance-tuning switch
+TUNE=generic         # performance-tuning switch
 
 DEF_PREFIX=/usr/local# Default software directory
 
