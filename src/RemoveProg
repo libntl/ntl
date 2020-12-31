@@ -1,0 +1,12 @@
+
+for i in $*
+do
+   rm -f "$i" 
+   rm -f "$i.exe"
+   rm -f ".libs/$i"
+   rm -f ".libs/$i.exe"
+   rm -rf "$i.dSYM"
+done
+ 
+exit 0
+

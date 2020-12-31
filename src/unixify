@@ -1,0 +1,37 @@
+
+rm -rf unix
+mkdir unix
+mkdir unix/src
+mkdir unix/include
+mkdir unix/include/NTL
+mkdir unix/doc
+
+cp ../README unix/README
+
+for i in $1
+do
+   cp $i unix/src/
+done
+
+for i in $2
+do
+   cp ../include/NTL/$i unix/include/NTL/
+done
+
+echo "#define NTL_PACKAGE (1)" >> unix/include/NTL/PackageInfo.h
+
+
+for i in $3
+do
+   cp ../doc/$i unix/doc/
+done
+
+sh ResetFeatures unix "$4"
+
+for f in $4
+do
+   cp Check$f.cpp unix/src/
+done
+
+cp -R libtool-seed unix/src
+cp -R libtool-origin unix/src

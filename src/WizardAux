@@ -1,0 +1,291 @@
+# This is a perl script, invoked from a shell
+
+use warnings;  # this doesn't work on older versions of perl
+
+
+sub GenConfigHeader {
+
+   my $line;
+   local *CFILE;
+   local *CFILEOUT;
+
+   open(CFILE, "< cfile");
+   open(CFILEOUT, "> cfileout");
+
+   while ($line = <CFILE>) {
+
+      $line =~ s/@\{(.*?)\}/$Config{$1}/ge;
+
+      print CFILEOUT $line;
+
+   }
+
+   close(CFILE);
+   close(CFILEOUT);
+
+   system("cp cfileout ../include/NTL/config.h");
+
+}
+
+
+
+
+sub RemoveProg {
+
+# This should work on unix and cygwin on windows
+
+   my ($name) = @_;
+
+   unlink($name);  unlink("$name.exe");
+
+}
+
+
+sub RunProg {
+
+   my ($name) = @_;
+   my $val;
+   my $res;
+
+   system("$ARGV[0] wclean") and return "999999999999999";
+   system("$ARGV[0] wntl.a") and return "999999999999999";
+   RemoveProg($name);
+   system("$ARGV[0] $name") and return "999999999999999";
+
+   print "\n*** running $name...";
+
+   $val = `./$name`;
+
+   if ($? != 0) {
+      $res = "999999999999999";
+   }
+   else {
+      ($res) = ( $val =~ /^([0-9]*)/ );
+   }
+
+   print $val, "\n";
+
+   return $res;
+
+}
+
+
+############################################################
+
+
+system("$ARGV[0] InitSettings");
+
+@lines = `./InitSettings`;
+
+%Config = (
+
+'NTL_SPMM_ULL'         => 0,
+'NTL_TBL_REM'          => 0,
+'NTL_CRT_ALTCODE'      => 0,
+'NTL_CRT_ALTCODE_SMALL'=> 0,
+'NTL_AVOID_BRANCHING'  => 0,
+'NTL_GF2X_ALTCODE'     => 0,
+'NTL_GF2X_ALTCODE1'    => 0,
+'NTL_GF2X_NOINLINE'    => 0,
+'NTL_FFT_BIGTAB'       => 0,
+'NTL_FFT_LAZYMUL'      => 0,
+
+'WIZARD_HACK'          => '#define NTL_WIZARD_HACK',
+
+);
+
+foreach $line (@lines) {
+   chomp($line);
+   ($name, $val) = ($line =~ /(.*?)=(.*)/);
+   $Config{$name} = $val;
+}
+
+
+
+
+
+#  set AVOID_BRANCHING, SPMM, and FFT flags...try all combinations 
+
+
+$time = "999999999999999";
+$aflag = "default";
+$bflag = "default";
+$cflag = "default";
+
+$Config{"NTL_FFT_BIGTAB"} = 1;
+
+foreach $aflag1 ("default", "NTL_FFT_LAZYMUL") {
+   foreach $bflag1 ("default", "NTL_SPMM_ULL") {
+      foreach $cflag1 ("default", "NTL_AVOID_BRANCHING") {
+
+
+         $Config{$aflag1} = 1;
+         $Config{$bflag1} = 1;
+         $Config{$cflag1} = 1;
+
+         $skipit = 0;
+
+         if ($Config{"NTL_SPMM_ULL"} == 1 && $Config{"NTL_HAVE_LL_TYPE"} == 0) {
+            $skipit = 1;
+         }
+
+         if ($Config{"NTL_FFT_LAZYMUL"} == 1 && 
+             !($Config{"NTL_LONGLONG_SP_MULMOD"} == 1 || $Config{"NTL_SPMM_ULL"} == 1)) {
+
+            $skipit = 1;
+         }
+
+         if ($Config{"NTL_LONGLONG_SP_MULMOD"} == 1 && $Config{"NTL_SPMM_ULL"} == 1) {
+            $skipit = 1;
+         }
+
+         if ($skipit) {
+
+               $Config{$aflag1} = 0;
+               $Config{$bflag1} = 0;
+               $Config{$cflag1} = 0;
+
+               print "skip: $aflag1 $bflag1 $cflag1\n";
+               next;
+         }
+
+         print "run: $aflag1 $bflag1 $cflag1\n";
+         GenConfigHeader();
+         $time1 = RunProg("Poly1TimeTest");
+
+         if ($time1 < $time) {
+            $aflag = $aflag1;
+            $bflag = $bflag1;
+            $cflag = $cflag1;
+            $time = $time1;
+         }
+
+         $Config{$aflag1} = 0;
+         $Config{$bflag1} = 0;
+         $Config{$cflag1} = 0;
+
+      }
+   }
+}
+
+$Config{$aflag} = 1;
+$Config{$bflag} = 1;
+$Config{$cflag} = 1;
+
+# now see if BIGTAB really helps
+
+$Config{"NTL_FFT_BIGTAB"} = 0;
+print "run: $aflag $bflag $cflag default\n";
+GenConfigHeader();
+$time1 = RunProg("Poly1TimeTest");
+
+if ($time1*1.0 > $time*1.04) {  
+   # stick with BIGTABs
+   $Config{"NTL_FFT_BIGTAB"} = 1;
+}
+
+
+
+# set flags NTL_GF2X_NOINLINE, NTL_GF2X_ALTCODE, NTL_GF2X_ALTCODE1,
+# but not if we have PCLMUL
+
+if ($Config{'NTL_HAVE_PCLMUL'} == 0) {
+
+   $time = "999999999999999";
+   $aflag = "default";
+   $bflag = "default";
+
+   foreach $aflag1 ("default", "NTL_GF2X_NOINLINE") {
+      foreach $bflag1 ("default", "NTL_GF2X_ALTCODE", "NTL_GF2X_ALTCODE1") {
+
+	 $Config{$aflag1} = 1;
+	 $Config{$bflag1} = 1;
+	 GenConfigHeader();
+	 $time1 = RunProg("GF2XTimeTest");
+
+	 if ($time1 < $time) {
+	    $aflag = $aflag1;
+	    $bflag = $bflag1;
+	    $time = $time1;
+	 }
+
+	 $Config{$aflag1} = 0;
+	 $Config{$bflag1} = 0;
+      }
+   }
+
+   $Config{$aflag} = 1;
+   $Config{$bflag} = 1;
+}
+
+
+
+# set NTL_TBL_REM
+
+if ($Config{"NTL_HAVE_LL_TYPE"} == 1) {
+
+   $time = "999999999999999";
+   $flag = "default";
+
+   foreach $flag1 ("default", "NTL_TBL_REM") {
+      $Config{$flag1} = 1;
+      GenConfigHeader(); 
+      $time1 = RunProg("Poly2TimeTest");
+
+      if ($time1 < $time) {
+	 $flag = $flag1;
+	 $time = $time1;
+      }
+
+      $Config{$flag1} = 0;
+   }
+
+   $Config{$flag} = 1;
+}
+
+
+# set NTL_CRT_ALTCODE
+
+if ($Config{"NTL_HAVE_LL_TYPE"} == 1 && $Config{"NTL_GMP_LIP"} == 1) {
+
+   $time = "999999999999999";
+   $flag = "default";
+
+   foreach $flag1 ("default", "NTL_CRT_ALTCODE") {
+      $Config{$flag1} = 1;
+      GenConfigHeader(); 
+      $time1 = RunProg("Poly3TimeTest");
+
+      if ($time1 < $time) {
+	 $flag = $flag1;
+	 $time = $time1;
+      }
+
+      $Config{$flag1} = 0;
+   }
+
+   $Config{$flag} = 1;
+
+   # set NTL_CRT_ALTCODE_SMALL, if NTL_CRT_ALTCODE
+   # not set but it did not perform too badly
+
+   if ($Config{"NTL_CRT_ALTCODE"} == 0) {
+      # time measures default and time1 measures ALTCODE
+      if (1.0*$time1 < 1.15*$time) {
+	 $Config{"NTL_CRT_ALTCODE_SMALL"} = 1;
+      }
+   }
+}
+
+
+
+$Config{'WIZARD_HACK'} = "";
+GenConfigHeader();
+
+print "\n\n*** the wizard is done!!\n\n"; 
+
+system("$ARGV[0] DispSettings");
+system("./DispSettings");
+system("./DispSettings > wizard_log.h");
+
+

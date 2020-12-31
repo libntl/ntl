@@ -1,0 +1,14 @@
+#!/bin/bash
+
+VIM=$HOME/Applications/MacVim.app/Contents/bin/mvim
+
+cd ../doc
+
+for i in $*
+do
+   name=`basename $i .txt`
+   cp $name.txt $name.cpp
+   $VIM $name.cpp '+set nu!' '+let c_no_curly_error=1' '+syntax off' '+syntax on'  '+TOhtml' '+:1,$s/.*@anchor{\(.*\)}.*/<a name="\1"><\/a>/'  '+w' '+qa!'
+done
+   
+

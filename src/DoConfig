@@ -1,0 +1,797 @@
+# This is a perl script, invoked from a shell
+
+use warnings;  # this doesn't work on older versions of perl
+
+
+system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
+
+
+%MakeFlag = (
+'SHARED'  => 'off',
+'NATIVE'  => 'on',
+);
+
+%MakeVal = (
+
+'CXX'	      => 'g++',
+'CXXFLAGS'    => '-g -O2',
+'CXXAUTOFLAGS'=> '',
+'NOCONTRACT'  => '',
+'AR'	      => 'ar',
+'ARFLAGS'     => 'ruv',
+'RANLIB'      => 'ranlib',
+'LIBTOOL'     => undef,
+'LIBTOOL_LINK_FLAGS' => '',
+'LIBTOOL_LINK_LIBS' => undef,
+
+'LDFLAGS'     => '',
+'LDLIBS'      => '-lm',
+'CPPFLAGS'    => '',
+
+'DEF_PREFIX'  => '/usr/local',
+
+'PREFIX'      => '$(DEF_PREFIX)',
+'LIBDIR'      => '$(PREFIX)/lib',
+'INCLUDEDIR'  => '$(PREFIX)/include',
+'DOCDIR'      => '$(PREFIX)/share/doc',
+
+'GMP_PREFIX'  => '$(DEF_PREFIX)',
+'GMP_INCDIR'  => '$(GMP_PREFIX)/include',
+'GMP_LIBDIR'  => '$(GMP_PREFIX)/lib',
+
+'GF2X_PREFIX'  => '$(DEF_PREFIX)',
+'GF2X_INCDIR'  => '$(GF2X_PREFIX)/include',
+'GF2X_LIBDIR'  => '$(GF2X_PREFIX)/lib',
+
+'MAKE_PROG'    => 'make',
+
+'TUNE'         => 'generic',
+
+);
+
+
+
+
+%ConfigFlag = (
+
+'NTL_LEGACY_NO_NAMESPACE' => 'off',
+'NTL_LEGACY_INPUT_ERROR'  => 'off',
+'NTL_DISABLE_LONGDOUBLE'  => 'off',
+'NTL_DISABLE_LONGLONG'    => 'off',
+'NTL_DISABLE_LL_ASM'      => 'off',
+'NTL_MAXIMIZE_SP_NBITS'   => 'off',
+'NTL_LEGACY_SP_MULMOD'    => 'off',
+'NTL_THREADS'             => 'on',
+'NTL_TLS_HACK'            => 'on',
+'NTL_EXCEPTIONS'          => 'off',
+'NTL_STD_CXX11'           => 'on',
+'NTL_STD_CXX14'           => 'off',
+'NTL_DISABLE_MOVE_ASSIGN' => 'on',
+'NTL_DISABLE_MOVE'        => 'off',
+'NTL_THREAD_BOOST'        => 'on',
+'NTL_GMP_LIP'             => 'on',
+'NTL_GF2X_LIB'            => 'off',
+'NTL_X86_FIX'             => 'off',
+'NTL_NO_X86_FIX'          => 'off',
+'NTL_NO_INIT_TRANS'       => 'on',
+'NTL_CLEAN_INT'           => 'off',
+'NTL_CLEAN_PTR'           => 'on',
+'NTL_SAFE_VECTORS'        => 'on',
+'NTL_RANGE_CHECK'         => 'off',
+'NTL_ENABLE_AVX_FFT'      => 'off',
+'NTL_AVOID_AVX512'        => 'off',
+
+
+'NTL_SPMM_ULL'            => 'off',
+'NTL_AVOID_BRANCHING'     => 'off',
+'NTL_FFT_BIGTAB'          => 'off',
+'NTL_FFT_LAZYMUL'         => 'off',
+'NTL_TBL_REM'             => 'off',
+'NTL_CRT_ALTCODE'         => 'off',
+'NTL_CRT_ALTCODE_SMALL'   => 'off',
+'NTL_GF2X_NOINLINE'       => 'off',
+'NTL_GF2X_ALTCODE'        => 'off',
+'NTL_GF2X_ALTCODE1'       => 'off',
+
+
+);
+
+
+%ConfigVal = (
+
+'NTL_UNSIGNED_LONG_LONG_TYPE' => undef,
+
+);
+
+
+%Variable = ();
+
+$nowrite = 0;
+
+foreach $arg (@ARGV) {
+
+   if ($arg =~ '^(-h|help|-help|--help)$') {
+      system("more ../doc/config.txt");
+      exit 0;
+   }
+
+   if ($arg =~ '^--nowrite$') {
+      $nowrite = 1;
+      next;
+   }
+
+
+   if (($name, $val) = ($arg =~ /(.*?)=(.*)/)) {
+
+      $Variable{$name} = 0;
+      
+      if (exists($MakeFlag{$name}) && ($val =~ 'on|off')) {
+         $MakeFlag{$name} = $val;
+         next;
+      }
+      elsif (exists($MakeVal{$name})) {
+         $MakeVal{$name} = $val;
+         next;
+      }
+      elsif (exists($ConfigFlag{$name}) && ($val =~ 'on|off')) {
+         $ConfigFlag{$name} = $val;
+         next;
+      }
+      elsif (exists($ConfigVal{$name})) {
+         $ConfigVal{$name} = $val;
+         next;
+      }
+   }
+
+   die "Error: unrecognized option: $arg\ntype \"./configure -h\" for help\n";
+
+}
+
+# warn against -O3, -Ofast, -ffast-math
+
+if ($MakeVal{'CXXFLAGS'} =~ '-O3') {
+   Warning("-O3 flag may yield incorrect code");
+}
+
+if ($MakeVal{'CXXFLAGS'} =~ '-Ofast') {
+   Warning("-Ofast flag may yield incorrect code");
+}
+
+if ($MakeVal{'CXXFLAGS'} =~ '-ffast-math') {
+   Warning("-ffast-math flag may yield incorrect code");
+}
+
+
+# special processing: NTL_THREADS=off => NTL_THREAD_BOOST=off
+
+if ($ConfigFlag{'NTL_THREADS'} eq 'off') {
+   $ConfigFlag{'NTL_THREAD_BOOST'} = 'off';
+}
+
+
+# special processing: CXXFLAGS contains '-march=' => NATIVE=off
+
+if ($MakeVal{'CXXFLAGS'} =~ '-march=') {
+   $MakeFlag{'NATIVE'} = 'off';
+}
+
+
+# some special MakeVal values that are determined by SHARED
+
+if ($MakeFlag{'SHARED'} eq 'off') {
+
+   $MakeVal{'LSTAT'} = '';
+   $MakeVal{'LSHAR'} = '# ';
+
+   if (!defined($MakeVal{'LIBTOOL'})) {
+      $MakeVal{'LIBTOOL'} = 'libtool';
+   }
+
+   if (!defined($MakeVal{'LIBTOOL_LINK_LIBS'})) {
+      $MakeVal{'LIBTOOL_LINK_LIBS'} = '';
+   }
+
+} else {
+
+   $MakeVal{'LSTAT'} = '# ';
+   $MakeVal{'LSHAR'} = '';
+
+   if (!defined($MakeVal{'LIBTOOL'})) {
+
+      # build libtool
+
+      $MakeVal{'LIBTOOL'} = './libtool-build/libtool';
+
+      print "\n\n*** building libtool\n\n";
+
+      system("rm -rf libtool-build") and die "Error: libtool build failed\n";
+      system("cp -R libtool-origin libtool-build") and die "Error: libtool build failed\n";
+      system("cd libtool-build && ./configure") and die "Error: libtool build failed\n";
+
+      if (-x "libtool-build/libtool") {
+	 print "\n*** libtool OK\n\n";
+      }
+      else {
+	 die "Error: libtool not created\n";
+      }
+
+   }
+   else {
+
+      # sanity check for existing libtool
+
+      print("***** checking for libtool *****\n");
+      if (system("$MakeVal{'LIBTOOL'} --version")) {
+	 die "Error: bad libtool ($MakeVal{'LIBTOOL'}) -- try glibtool?";
+      }
+      print("***** libtool OK *****\n\n");
+
+   }
+
+   # special processing to make sure -lpthread gets passed
+   # to libtool, to prevent so-called "underlinking".
+   # This helps to ensure that clients using NTL as a shared library
+   # do not need to pass -pthread when compiling.
+   if (!defined($MakeVal{'LIBTOOL_LINK_LIBS'})) {
+      if ($ConfigFlag{'NTL_THREADS'} eq 'on') {
+         $MakeVal{'LIBTOOL_LINK_LIBS'} = '-lpthread';
+      }
+   }
+
+
+}
+
+# special GMP variables
+
+$MakeVal{'GMPI'} = '# ';
+$MakeVal{'GMPL'} = '# ';
+$MakeVal{'GMP'} =  '# ';
+
+if ($ConfigFlag{'NTL_GMP_LIP'} eq 'on') {
+   $MakeVal{'GMP'} = '';
+   if (exists($Variable{'DEF_PREFIX'}) ||
+       exists($Variable{'GMP_PREFIX'}) ||
+       exists($Variable{'GMP_INCDIR'})) {
+      $MakeVal{'GMPI'} = '';
+   }
+   if (exists($Variable{'DEF_PREFIX'}) ||
+       exists($Variable{'GMP_PREFIX'}) ||
+       exists($Variable{'GMP_LIBDIR'})) {
+      $MakeVal{'GMPL'} = '';
+   }
+}
+
+# special GF2X variables
+
+
+$MakeVal{'GF2XI'} = '# ';
+$MakeVal{'GF2XL'} = '# ';
+$MakeVal{'GF2X'} =  '# ';
+
+
+if ($ConfigFlag{'NTL_GF2X_LIB'} eq 'on') {
+   $MakeVal{'GF2X'} = '';
+   if (exists($Variable{'DEF_PREFIX'}) ||
+       exists($Variable{'GF2X_PREFIX'}) ||
+       exists($Variable{'GF2X_INCDIR'})) {
+      $MakeVal{'GF2XI'} = '';
+   }
+   if (exists($Variable{'DEF_PREFIX'}) ||
+       exists($Variable{'GF2X_PREFIX'}) ||
+       exists($Variable{'GF2X_LIBDIR'})) {
+      $MakeVal{'GF2XL'} = '';
+   }
+}
+
+
+# copy %MakeVal and %MakeFlag as is into %MakeSub
+
+%MakeSub = (%MakeVal, %MakeFlag);
+
+
+# copy %ConfigFlag into %ConfigSub, substituting 0 for off and 1 of on
+
+
+%ConfigSub = ( );
+
+foreach $name (keys %ConfigFlag) {
+
+   if ($ConfigFlag{$name} eq 'on') {
+      $ConfigSub{$name} = 1;
+   }
+   else {
+      $ConfigSub{$name} = 0;
+   }
+
+}
+
+
+# special logic for NTL_UNSIGNED_LONG_LONG_TYPE
+
+if (defined($ConfigVal{'NTL_UNSIGNED_LONG_LONG_TYPE'})) {
+
+   $ConfigSub{'NTL_UNSIGNED_LONG_LONG_TYPE'} = $ConfigVal{'NTL_UNSIGNED_LONG_LONG_TYPE'};
+   $ConfigSub{'FLAG_UNSIGNED_LONG_LONG_TYPE'} = 1;
+
+}
+else {
+   
+   $ConfigSub{'NTL_UNSIGNED_LONG_LONG_TYPE'} = 'unsigned long long';
+   $ConfigSub{'FLAG_UNSIGNED_LONG_LONG_TYPE'} = 0;
+
+}
+
+# special logic for WIZARD_HACK
+
+$ConfigSub{'WIZARD_HACK'} = '';
+
+
+# some extra logic consistency checks
+
+if ($ConfigSub{'NTL_X86_FIX'} + $ConfigSub{'NTL_NO_X86_FIX'} > 1) {
+
+   die "Error: at most one of NTL_X86_FIX and NTL_NO_X86_FIX may be on\n";
+
+}
+
+
+
+if ($ConfigSub{'NTL_GF2X_ALTCODE'} + $ConfigSub{'NTL_GF2X_ALTCODE1'} > 1) {
+
+   die "Error: at most one of NTL_GF2X_ALTCODE and NTL_GF2X_ALTCODE1 may be on\n";
+
+}
+
+
+if ($ConfigSub{'NTL_CRT_ALTCODE'} + $ConfigSub{'NTL_CRT_ALTCODE_SMALL'} > 1) {
+
+   die "Error: at most one of NTL_CRT_ALTCODE and NTL_CRT_ALTCODE_SMALL may be on\n";
+
+}
+
+if ($ConfigSub{'NTL_ENABLE_AVX_FFT'} == 1 && $MakeSub{'TUNE'} eq 'auto') {
+   die "Error: incompatible options NTL_ENABLE_AVX_FFT=on and TUNE=auto\n";
+}
+
+
+
+#
+#
+# useful auxilliary routines
+
+sub Warning {
+
+   my ($s) = @_;
+   printf("\n*** WARNING: \n%s\n\n", $s);
+   return 1;
+}
+
+
+sub RemoveProg {
+# This should work on unix and cygwin on windows
+
+   my ($name) = @_;
+   unlink($name);  unlink("$name.exe");
+   return 1;
+}
+
+sub RemoveFile {
+   my ($name) = @_;
+   unlink($name);  
+   return 1;
+}
+
+sub GenFiles {
+
+   open(MFILE, "< mfile");
+   open(MFILEOUT, "> mfileout");
+   
+   while ($line = <MFILE>) {
+   
+      $line =~ s/@\{(.*?)\}/$MakeSub{$1}/ge;
+   
+      print MFILEOUT $line;
+   
+   }
+   
+   close(MFILE);
+   close(MFILEOUT);
+   
+   
+   # generate config.h
+   
+   
+   open(CFILE, "< cfile");
+   open(CFILEOUT, "> cfileout");
+   
+   while ($line = <CFILE>) {
+   
+      $line =~ s/@\{(.*?)\}/$ConfigSub{$1}/ge;
+   
+      print CFILEOUT $line;
+   
+   }
+
+   close(CFILE);
+   close(CFILEOUT);
+
+   open(HFILEOUT, "> hfileout");
+   $argstr = join(' ', @ARGV);
+   print HFILEOUT "#if 0\n";
+   print HFILEOUT "generated by ./configure $argstr\n\n"; 
+
+   my @flag = ("off", "on");
+
+   foreach $name (sort keys %ConfigSub) {
+      if ($name eq 'NTL_UNSIGNED_LONG_LONG_TYPE') {
+         print HFILEOUT "$name=\"$ConfigSub{$name}\"\n";
+      }
+      elsif ($name eq 'FLAG_UNSIGNED_LONG_LONG_TYPE' ||
+             $name eq 'WIZARD_HACK') {
+         # do nothing
+      }
+      else {
+         #print HFILEOUT "*** $ConfigSub{$name}\n";
+         print HFILEOUT "$name=" . $flag[$ConfigSub{$name}] . "\n";
+      }
+   }
+
+   print HFILEOUT "\n";
+
+   foreach $name (sort keys %MakeSub) {
+      print HFILEOUT "$name=\"$MakeSub{$name}\"\n";
+   }
+   #print HFILEOUT "CXXFLAGS=\"$MakeSub{'CXXFLAGS'}\"\n";
+   #print HFILEOUT "CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n";
+   #print HFILEOUT "NOCONTRACT=\"$MakeSub{'NOCONTRACT'}\"\n";
+
+   print HFILEOUT "#endif\n";
+   close(HFILEOUT);
+   
+   
+   return 1;
+}
+
+sub CopyFiles {
+
+   system("cp mfileout makefile") and die "Error: CopyFile failed";
+   system("cp cfileout ../include/NTL/config.h") and die "Error: CopyFile failed";;
+   system("cp hfileout ../include/NTL/ConfigLog.h") and die "Error: CopyFile failed";
+
+   return 1;
+}
+
+sub Exec {
+   my ($name) = @_;
+   GenFiles();
+   CopyFiles();
+   RemoveProg("$name");
+   system("$MakeVal{'MAKE_PROG'} $name > OneCompilerOutput.log 2>&1") 
+      and RemoveProg("$name") and return 0;
+   system("cat OneCompilerOutput.log >> CompilerOutput.log");
+   my $output = `cat OneCompilerOutput.log`;
+   if ($output =~ /^icc: command line warning/m) {
+      # icc just gives warnings for bad command line args
+      RemoveProg("$name") and return 0;
+   }
+   system("./$name") and RemoveProg("$name") and return 0;
+   RemoveProg("$name") and return 1;
+}
+
+sub CheckCompile {
+   return Exec("CheckCompile");
+}
+
+sub CheckFlag {
+   my ($flag) = @_;
+   my $try_flags = $MakeSub{'CXXAUTOFLAGS'};
+   print "*** checking $flag flag\n";
+   system("echo '*** checking $flag flag' >> CompilerOutput.log");
+   $MakeSub{'CXXAUTOFLAGS'} = $MakeSub{'CXXAUTOFLAGS'} . ' ' . $flag;
+   print("   CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n");
+   if (CheckCompile()) {
+      print "   $flag works\n";
+      return 1;
+   }
+   else {
+      $MakeSub{'CXXAUTOFLAGS'} = $try_flags;
+      print "   $flag does not work\n";
+      return 0;
+   }
+}
+
+
+$min_std = 0;
+$pthread_flag = 0;
+$native_flag = 0;
+
+# special processing for NTL_THREADS
+
+if ($ConfigSub{'NTL_THREADS'}) {
+   $min_std = 2011; # ' -std=c++11';
+   $pthread_flag = 1; # ' -pthread';
+}
+
+# special processing for NTL_EXCEPTIONS
+
+if ($ConfigSub{'NTL_EXCEPTIONS'}) {
+   $min_std=2011; # ' -std=c++11';
+}
+
+# special processing for NTL_SAFE_VECTORS
+
+if ($ConfigSub{'NTL_SAFE_VECTORS'}) {
+   $min_std=2011; # ' -std=c++11';
+}
+
+# special processing for NATIVE
+
+if ($MakeFlag{'NATIVE'} eq 'on') {
+    $native_flag = 1; # ' -march=native';
+}
+
+if ($ConfigSub{'NTL_STD_CXX14'}) {
+   $min_std = 2014;
+}
+elsif ($ConfigSub{'NTL_STD_CXX11'}) {
+   $min_std = 2011;
+}
+elsif ($min_std) {
+   $ConfigSub{'NTL_STD_CXX11'} = 1;
+}
+
+
+sub Process_TUNE {
+   # special processing for TUNE --- WIZARD gets set here as well
+
+   if ($MakeSub{'TUNE'} eq 'auto') {
+      $MakeSub{'WIZARD'} = 'on';
+   }
+   else {
+      $MakeSub{'WIZARD'} = 'off';
+
+      if ($MakeSub{'TUNE'} eq 'generic') {
+	 # the default values are set to ensure reasonably good performance
+	 # across a wide range of architectures, but it's better to run the
+	 # Wizard. Here, I don't want to assume a cmov-like instruction,
+         # so we set AVOID_BRANCHING to be on the safe side.
+
+	 $ConfigSub{'NTL_SPMM_ULL'}            = 1,
+	 $ConfigSub{'NTL_AVOID_BRANCHING'}     = 1,
+	 $ConfigSub{'NTL_FFT_BIGTAB'}          = 1,
+	 $ConfigSub{'NTL_FFT_LAZYMUL'}         = 1,
+	 $ConfigSub{'NTL_TBL_REM'}             = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE'}         = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE_SMALL'}   = 0,
+	 $ConfigSub{'NTL_GF2X_NOINLINE'}       = 0,
+	 $ConfigSub{'NTL_GF2X_ALTCODE'}        = 0,
+	 $ConfigSub{'NTL_GF2X_ALTCODE1'}       = 1,
+      }
+      elsif ($MakeSub{'TUNE'} eq 'x86') {
+         # these settings should work pretty well across x86's
+         # the most important assumption is that we have the cmov
+         # instruction
+  
+	 $ConfigSub{'NTL_SPMM_ULL'}            = 1,
+	 $ConfigSub{'NTL_AVOID_BRANCHING'}     = 0,
+	 $ConfigSub{'NTL_FFT_BIGTAB'}          = 1,
+	 $ConfigSub{'NTL_FFT_LAZYMUL'}         = 1,
+	 $ConfigSub{'NTL_TBL_REM'}             = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE'}         = 1,
+	 $ConfigSub{'NTL_CRT_ALTCODE_SMALL'}   = 0,
+	 $ConfigSub{'NTL_GF2X_NOINLINE'}       = 0,
+	 $ConfigSub{'NTL_GF2X_ALTCODE'}        = 0,
+	 $ConfigSub{'NTL_GF2X_ALTCODE1'}       = 1,
+      }
+      else {
+	 die "Error: TUNE not in {auto,generic,x86}";
+      }
+   }
+}
+
+
+Process_TUNE();
+# we call this once here and then optionally again later
+# if the TUNE flag is not set on the command line
+# and the architecture is recognized (right now, only
+# x86 is recognized)
+
+
+
+#########################################
+
+if ($nowrite) {
+   GenFiles();
+   exit 0;
+}
+
+#########################################
+
+unlink "need-to-run-configure";
+# this gets unlinked here and recreated upon normal
+# termination.  The makefile checks for this.
+# This prevents leaving makefile and config.h in some
+# indeterminant state.
+
+
+#get some rudimentary info from compiler
+# language_standard: one of 0, 1997, 2011, 2014, 2017.
+#   used to set -std= flag intelligently
+# cpu_type: one of x87, unknown 
+#   used to set TUNE intelligently
+# compiler_name: one of gcc, clang, icc, unknown
+#   used to set floating point flags intelligently
+GenFiles();
+CopyFiles();
+RemoveProg("GenConfigInfo");
+system("echo '*** building GenConfigInfo' >> CompilerOutput.log");
+
+if(system("$MakeSub{'MAKE_PROG'} GenConfigInfo >> CompilerOutput.log 2>&1")) { 
+   print("Compilation failed\n");
+   print("See CompilerOutput.log for details\n");
+   die "Goodbye!";
+}
+
+my $config_info = `./GenConfigInfo`;
+
+my ($compiler_name, $language_standard, $cpu_type);
+($compiler_name, $language_standard, $cpu_type) =
+   ($config_info =~ /\((.*?),(.*?),(.*?)\)/) or die "Error: GenConfigInfo failed";
+
+# convert to number
+$language_standard += 0 or Warning("__cplusplus not correctly defined");
+
+print("compiler_name=$compiler_name\n");
+print("language_standard=$language_standard\n");
+print("cpu_type=$cpu_type\n\n");
+
+
+
+if (!exists($Variable{'TUNE'})) {
+   if ($cpu_type eq "x86") {
+      $MakeSub{'TUNE'}='x86';
+      Process_TUNE();
+      print "setting TUNE=x86\n\n";
+   }
+}
+
+
+
+if (exists($Variable{'CXXAUTOFLAGS'})) {
+   print("CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n");
+   GenFiles();
+   CopyFiles();
+   exit 0;
+}
+
+
+
+if ($min_std >= 2014) {
+   if ($language_standard < 2014) { CheckFlag('-std=c++14'); }
+}
+elsif ($min_std >= 2011) {
+   if ($language_standard < 2011) { CheckFlag('-std=c++11'); }
+}
+
+if ($pthread_flag) {
+   CheckFlag('-pthread');
+}
+   
+if ($native_flag) {
+   CheckFlag('-march=native');
+}
+
+# disable floating-point optimizations that are not value safe
+# for most compilers, the default at optimzation  '-O2' is to 
+# disable such optimizations. icc is the big exception,
+# so we compile all of NTL with the "-fp-model precise" flag.
+# On older IA-32 machines, this also has the effect of preventing
+# calculations in "extended double" precision.
+
+if ($compiler_name eq 'icc') {
+   CheckFlag('-fp-model precise');
+}
+
+
+# logic to disable floating-point contractions (FMA) in quad_float.cpp.
+# This is an issue on machines with FMA instructions.
+# By default, gcc and icc allow contractions, while clang does not.
+
+sub CheckContract {
+   return Exec("CheckContract");
+}
+
+# on success, returns 1 and leaves flag set
+sub FixContract {
+   my ($flag) = @_;
+   print "*** checking $flag flag\n";
+   system("echo '*** checking $flag flag' >> CompilerOutput.log");
+   $MakeSub{'NOCONTRACT'} = $flag . ' ' . '-DNTL_CONTRACTION_FIXED';
+
+   my $result = CheckContract();
+   if ($result) {
+      print "   $flag works\n";
+   }
+   else {
+      print "   $flag does not work\n";
+      $MakeSub{'NOCONTRACT'} = '';
+   }
+   return $result;
+}
+
+
+if (!CheckContract()) {
+   if (exists($Variable{'NOCONTRACT'})) {
+      Warning("cannot disable floating point contraction");
+   } 
+   elsif ($compiler_name eq 'gcc') {
+      FixContract('-ffp-contract=off') ||
+      FixContract('-mno-fused-madd') || # obsolete, but may work on older gcc's
+      Warning("cannot disable floating point contraction");
+   } 
+   elsif ($compiler_name eq 'clang') {
+      # this really should not be necessary with clang: the default
+      # is no contractions 
+      FixContract('-ffp-contract=off') ||
+      Warning("cannot disable floating point contraction");
+   }
+   elsif ($compiler_name eq 'icc') {
+      # defining NTL_FP_CONTRACT_OFF will make the source
+      # code use the pragma fp_contract(off)
+      FixContract('-DNTL_FP_CONTRACT_OFF') ||
+      Warning("cannot disable floating point contraction");
+   }
+   else {
+      Warning("cannot disable floating point contraction");
+   }
+}
+
+# logic to check that threads and TLS are working...enable NTL_TLS_HACK 
+# if necessary
+
+sub CheckThreads {
+   return Exec("CheckThreads");
+}
+
+if ($ConfigSub{'NTL_THREADS'}) {
+
+   if (CheckThreads()) {
+      print "*** threads are OK \n";
+   }
+   else {
+      if ($ConfigSub{'NTL_TLS_HACK'} == 0) { die "Error: threads are broken"; }
+      $ConfigSub{'NTL_TLS_HACK'} = 0;
+      if (CheckThreads()) {
+         print "*** threads are OK with NTL_TLS_HACK=off\n";
+      }
+      else {
+         die "Error: threads are broken";
+      }
+   }
+
+}
+
+
+
+
+GenFiles();
+CopyFiles();
+
+
+unlink "setup-phase";
+# This will force make to run the setup phase
+
+system("touch need-to-run-configure") 
+   and die "Error: could not create need-to-run-configure";
+
+print("\n");
+print("CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n");
+print("NOCONTRACT=\"$MakeSub{'NOCONTRACT'}\"\n");
+print("\n");
+print("generated makefile\n");
+print("generated ../include/NTL/config.h\n");
+print("generated ../include/NTL/ConfigLog.h\n");
+exit 0;
+
+
+

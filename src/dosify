@@ -1,0 +1,67 @@
+
+rm -rf dos
+
+mkdir dos
+mkdir dos/src
+mkdir dos/include
+mkdir dos/include/NTL
+mkdir dos/doc
+mkdir dos/GetTime
+mkdir dos/GetPID
+mkdir dos/MakeDesc
+mkdir dos/misc
+mkdir dos/tests
+mkdir dos/CheckFeatures
+
+cp ../README dos/README.txt
+
+cp GetTime4.cpp dos/src/GetTime.cpp
+
+cp GetPID2.cpp dos/src/GetPID.cpp
+
+cp mach_desc.win dos/include/NTL/mach_desc.h
+
+
+cp GetTime0.cpp dos/GetTime/GetTime0.cpp
+cp GetTime1.cpp dos/GetTime/GetTime1.cpp
+cp GetTime2.cpp dos/GetTime/GetTime2.cpp
+cp GetTime3.cpp dos/GetTime/GetTime3.cpp
+cp GetTime4.cpp dos/GetTime/GetTime4.cpp
+cp GetTime5.cpp dos/GetTime/GetTime5.cpp
+
+cp GetPID1.cpp dos/GetPID/GetPID1.cpp
+cp GetPID2.cpp dos/GetPID/GetPID2.cpp
+
+cp MakeDesc.cpp dos/MakeDesc/MakeDesc.cpp
+cp MakeDescAux.cpp dos/MakeDesc/MakeDescAux.cpp
+
+cp newnames.cpp dos/misc/newnames.cpp
+cp gen_gmp_aux.cpp dos/misc/gen_gmp_aux.cpp
+
+for i in $1
+do
+   cp $i dos/src/$i
+done
+
+for i in $2
+do
+   cp ../include/NTL/$i dos/include/NTL/$i
+done
+
+echo "#define NTL_WINPACK (1)" >> dos/include/NTL/PackageInfo.h
+
+for i in $3
+do
+   cp ../doc/$i dos/doc/$i
+done
+
+for i in $4
+do
+   cp $i dos/tests/$i
+done
+
+cp $5 dos/tests
+
+cp cfileout dos/include/NTL/config.h
+sh ResetFeatures dos "$6"
+

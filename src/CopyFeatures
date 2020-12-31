@@ -1,0 +1,7 @@
+
+for f in $3
+do
+   cp "$1/include/NTL/HAVE_$f.h" "$2/include/NTL/"
+done
+
+cp "$1/include/NTL/ALL_FEATURES.h" "$2/include/NTL/"

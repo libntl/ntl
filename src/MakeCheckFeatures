@@ -1,0 +1,34 @@
+
+# invoked as: sh MakeCheckFeatures "$(FEATURES)" "$(LINK)" "$(LDLIBS)"
+
+for f in $1
+do
+
+   printf '*** Checking for feature: %s ' "$f"
+
+   echo "" > "../include/NTL/HAVE_$f.h"
+
+   sh RemoveProg CheckFeatures
+   echo $2 Check$f.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
+   $2 Check$f.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
+
+   if test -f CheckFeatures
+   then
+      if ./CheckFeatures
+      then
+	 echo "[yes]"
+	 echo "#ifndef NTL_HAVE_$f" >  "../include/NTL/HAVE_$f.h"
+	 echo "#define NTL_HAVE_$f" >> "../include/NTL/HAVE_$f.h"
+	 echo "#endif"              >> "../include/NTL/HAVE_$f.h"
+	 sh RemoveProg CheckFeatures
+      else
+	 echo "[no]"
+      fi
+   else
+      echo "[no]"
+   fi
+
+done
+
+exit 0
+

@@ -1,0 +1,116 @@
+
+if test "$1" = "on"
+then
+   echo ""
+   echo "*"
+   echo "*"
+   echo "* The wizard is going to run."
+   echo "* It will perform some timing experiments, and then automatically"
+   echo "* update your config.h file."
+   echo "* Please be patient, and don't be spooked by any error messages."
+   echo "*"
+   echo "*"
+else
+   echo ""
+   echo "*"
+   echo "*"
+   echo "* You have chosen not to run the wizard."
+   echo "*"
+   echo "*"
+   exit 0
+fi
+
+rm -rf small
+
+mkdir small
+mkdir small/src
+mkdir small/include
+mkdir small/include/NTL
+
+cp Poly1TimeTest.cpp small/src
+cp Poly2TimeTest.cpp small/src
+cp Poly3TimeTest.cpp small/src
+cp GF2XTimeTest.cpp small/src
+cp InitSettings.cpp small/src
+cp DispSettings.cpp small/src
+
+cp FFT.cpp small/src
+cp GetTime.cpp small/src
+cp GetPID.cpp small/src
+cp ctools.cpp small/src
+cp ZZ.cpp small/src
+cp ZZVec.cpp small/src
+cp ZZ_p.cpp small/src
+cp ZZ_pX.cpp small/src
+cp ZZ_pX1.cpp small/src
+cp lip.cpp small/src
+cp tools.cpp small/src
+cp vec_ZZ.cpp small/src
+cp vec_ZZ_p.cpp small/src
+cp GF2.cpp small/src
+cp WordVector.cpp small/src
+cp vec_GF2.cpp small/src
+cp GF2X.cpp small/src
+cp GF2X1.cpp small/src
+cp thread.cpp small/src
+cp BasicThreadPool.cpp small/src
+cp fileio.cpp small/src
+
+
+
+sh CopyFeatures '..' small "$3"
+cp ../include/NTL/FFT.h small/include/NTL
+cp ../include/NTL/FFT_impl.h small/include/NTL
+cp ../include/NTL/ctools.h small/include/NTL
+cp ../include/NTL/ZZ.h small/include/NTL
+cp ../include/NTL/sp_arith.h small/include/NTL
+cp ../include/NTL/ZZVec.h small/include/NTL
+cp ../include/NTL/ZZ_p.h small/include/NTL
+cp ../include/NTL/ZZ_pX.h small/include/NTL
+cp ../include/NTL/config.h small/include/NTL
+cp ../include/NTL/lip.h small/include/NTL
+cp ../include/NTL/gmp_aux.h small/include/NTL
+cp ../include/NTL/mach_desc.h small/include/NTL
+cp ../include/NTL/new.h small/include/NTL
+cp ../include/NTL/SmartPtr.h small/include/NTL
+cp ../include/NTL/Lazy.h small/include/NTL
+cp ../include/NTL/LazyTable.h small/include/NTL
+cp ../include/NTL/thread.h small/include/NTL
+cp ../include/NTL/BasicThreadPool.h small/include/NTL
+cp ../include/NTL/fileio.h small/include/NTL
+cp ../include/NTL/tools.h small/include/NTL
+cp ../include/NTL/vec_ZZ.h small/include/NTL
+cp ../include/NTL/vec_ZZ_p.h small/include/NTL
+cp ../include/NTL/vec_long.h small/include/NTL
+cp ../include/NTL/vector.h small/include/NTL
+cp ../include/NTL/GF2.h small/include/NTL
+cp ../include/NTL/WordVector.h small/include/NTL
+cp ../include/NTL/vec_GF2.h small/include/NTL
+cp ../include/NTL/GF2X.h small/include/NTL
+cp ../include/NTL/PackageInfo.h small/include/NTL
+
+cp cfile small/src
+cp WizardAux small/src
+
+cp makefile small/src
+
+
+cd small/src
+echo "*** perl WizardAux $2"
+perl WizardAux "$2"
+
+cd ../..
+
+echo "*"
+echo "*"
+echo "* Updating config.h and wizard_log.h"
+echo "*"
+echo "*"
+
+cp small/include/NTL/config.h ../include/NTL/config.h
+cp small/src/wizard_log.h ../include/NTL/wizard_log.h
+
+rm -r small
+
+exit 0
+

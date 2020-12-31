@@ -1,0 +1,26 @@
+
+if test -f GetPID.cpp
+then
+   rm GetPID.cpp
+fi
+
+echo "who am I?"
+
+
+sh RemoveProg TestGetPID
+echo $1 -o TestGetPID TestGetPID.cpp GetPID1.cpp $2  >> "CheckFeatures.log" 2>&1
+$1 -o TestGetPID TestGetPID.cpp GetPID1.cpp $2  >> "CheckFeatures.log" 2>&1
+
+if test -f TestGetPID
+then
+cp GetPID1.cpp GetPID.cpp
+echo "using GetPID1.cpp"
+exit 0
+fi
+
+
+cp GetPID2.cpp GetPID.cpp
+echo "using GetPID2.cpp"
+echo "warning: this GetPID function always returns 0"
+exit 0
+

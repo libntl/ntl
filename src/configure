@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# This is just a shell script that calls perl.
+# Since perl may be located in a wierd place, this
+# should be more portable than using a direct "shebang".
+
+# Also, some shells do not handle "$@" correctly when
+# no options are supplied, so this is handled as a special case.
+
+
+
+
+if test $# -ne 0
+then
+   perl DoConfig "$@"
+else
+   perl DoConfig
+fi
+

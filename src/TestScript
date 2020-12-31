@@ -1,0 +1,264 @@
+MAKE_PROG="$1"
+
+echo
+echo "---------------------------------"
+echo "making ZZTest"
+$MAKE_PROG ZZTest
+echo "running ZZTest"
+./ZZTest
+sh RemoveProg ZZTest
+
+echo
+echo "---------------------------------"
+echo "making SSMulTest"
+$MAKE_PROG SSMulTest
+echo "running SSMulTest"
+./SSMulTest
+sh RemoveProg SSMulTest
+
+
+echo
+echo "---------------------------------"
+echo "making ZZ_pXTest"
+$MAKE_PROG ZZ_pXTest
+echo "running ZZ_pXTest"
+./ZZ_pXTest
+sh RemoveProg ZZ_pXTest
+
+echo
+echo "---------------------------------"
+echo "making lzz_pXTest"
+$MAKE_PROG lzz_pXTest
+echo "running lzz_pXTest"
+./lzz_pXTest
+sh RemoveProg lzz_pXTest
+
+echo
+echo "---------------------------------"
+echo "making CanZassTest"
+$MAKE_PROG CanZassTest
+echo "running CanZassTest"
+./CanZassTest < CanZassTestIn > XXX
+sh RemoveProg CanZassTest
+if diff -b XXX CanZassTestOut
+then
+echo "CanZassTest OK"
+else
+echo "bad CanZassTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making BerlekampTest"
+$MAKE_PROG BerlekampTest
+echo "running BerlekampTest"
+./BerlekampTest < BerlekampTestIn > XXX
+sh RemoveProg BerlekampTest
+if diff -b XXX BerlekampTestOut
+then
+echo "BerlekampTest OK"
+else
+echo "bad BerlekampTest"
+fi
+
+
+echo
+echo "---------------------------------"
+echo "making ZZXFacTest"
+$MAKE_PROG ZZXFacTest
+echo "running ZZXFacTest"
+./ZZXFacTest < ZZXFacTestIn > XXX
+sh RemoveProg ZZXFacTest
+if diff -b XXX ZZXFacTestOut
+then
+echo "ZZXFacTest OK"
+else
+echo "bad ZZXFacTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making MoreFacTest"
+$MAKE_PROG MoreFacTest
+echo "running MoreFacTest"
+./MoreFacTest < MoreFacTestIn 
+sh RemoveProg MoreFacTest
+
+echo
+echo "---------------------------------"
+echo "making GF2XTest"
+$MAKE_PROG GF2XTest
+echo "running GF2XTest"
+./GF2XTest
+sh RemoveProg GF2XTest
+
+echo
+echo "---------------------------------"
+echo "making GF2EXTest"
+$MAKE_PROG GF2EXTest
+echo "running GF2EXTest"
+./GF2EXTest
+sh RemoveProg GF2EXTest
+
+
+echo
+echo "---------------------------------"
+echo "making GF2EXGCDTest"
+$MAKE_PROG GF2EXGCDTest
+echo "running GF2EXGCDTest"
+./GF2EXGCDTest
+sh RemoveProg GF2EXGCDTest
+
+echo
+echo "---------------------------------"
+echo "making MatrixTest"
+$MAKE_PROG MatrixTest
+echo "running MatrixTest"
+./MatrixTest < MatrixTestIn > XXX
+sh RemoveProg MatrixTest
+if diff -b XXX MatrixTestOut
+then
+echo "MatrixTest OK"
+else
+echo "bad MatrixTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making mat_lzz_pTest"
+$MAKE_PROG mat_lzz_pTest
+echo "running mat_lzz_pTest"
+./mat_lzz_pTest 
+sh RemoveProg mat_lzz_pTest
+
+
+echo
+echo "---------------------------------"
+echo "making CharPolyTest"
+$MAKE_PROG CharPolyTest
+echo "running CharPolyTest"
+./CharPolyTest < CharPolyTestIn > XXX
+sh RemoveProg CharPolyTest
+if diff -b XXX CharPolyTestOut
+then
+echo "CharPolyTest OK"
+else
+echo "bad CharPolyTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making BitMatTest"
+$MAKE_PROG BitMatTest
+echo "running BitMatTest"
+./BitMatTest
+sh RemoveProg BitMatTest
+
+
+echo
+echo "---------------------------------"
+echo "making RRTest"
+$MAKE_PROG RRTest
+echo "running RRTest"
+./RRTest < RRTestIn > XXX
+sh RemoveProg RRTest
+if diff -b XXX RRTestOut
+then
+echo "RRTest OK"
+else
+echo "bad RRTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making QuadTest"
+$MAKE_PROG QuadTest
+echo "running QuadTest"
+./QuadTest < QuadTestIn > XXX
+sh RemoveProg QuadTest
+if diff -b XXX QuadTestOut
+then
+echo "QuadTest OK"
+else
+echo "bad QuadTest"
+fi
+
+
+echo
+echo "---------------------------------"
+echo "making LLLTest"
+$MAKE_PROG LLLTest
+echo "running LLLTest"
+./LLLTest < LLLTestIn > XXX
+sh RemoveProg LLLTest
+if diff -b XXX LLLTestOut
+then
+echo "LLLTest OK"
+else
+echo "bad LLLTest"
+fi
+
+echo
+echo "---------------------------------"
+echo "making subset"
+$MAKE_PROG subset
+echo "subset 40 40 20 10 999999 f"
+./subset <<here
+  40 40 20 10 999999 f
+here
+echo "subset 40 40 20 10 999999 q"
+./subset <<here
+  40 40 20 10 999999 q
+here
+
+sh RemoveProg subset
+
+
+echo
+echo "---------------------------------"
+echo "making ZZ_pEXTest"
+$MAKE_PROG ZZ_pEXTest
+echo "running ZZ_pEXTest"
+./ZZ_pEXTest 
+sh RemoveProg ZZ_pEXTest
+
+echo
+echo "---------------------------------"
+echo "making ZZ_pEXGCDTest"
+$MAKE_PROG ZZ_pEXGCDTest
+echo "running ZZ_pEXGCDTest"
+./ZZ_pEXGCDTest 
+sh RemoveProg ZZ_pEXGCDTest
+
+
+
+echo
+echo "---------------------------------"
+echo "making lzz_pEXTest"
+$MAKE_PROG lzz_pEXTest
+echo "running lzz_pEXTest"
+./lzz_pEXTest 
+sh RemoveProg lzz_pEXTest
+
+
+echo
+echo "---------------------------------"
+echo "making lzz_pEXGCDTest"
+$MAKE_PROG lzz_pEXGCDTest
+echo "running lzz_pEXGCDTest"
+./lzz_pEXGCDTest 
+sh RemoveProg lzz_pEXGCDTest
+
+
+echo
+echo "---------------------------------"
+echo "making ThreadTest"
+$MAKE_PROG ThreadTest
+echo "running ThreadTest"
+./ThreadTest 
+sh RemoveProg ThreadTest
+
+echo
+
+
+exit 0

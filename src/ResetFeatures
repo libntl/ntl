@@ -1,0 +1,25 @@
+
+echo "" > "$1/include/NTL/ALL_FEATURES.h"
+echo "" > "$1/include/NTL/REPORT_ALL_FEATURES.h"
+
+rm -f "$1"/include/NTL/HAVE_*.h
+
+for f in $2
+do
+   echo "" > "$1/include/NTL/HAVE_$f.h"
+
+   echo "#include <NTL/HAVE_$f.h>" >> "$1/include/NTL/ALL_FEATURES.h"
+
+   echo "#ifdef NTL_HAVE_$f" >> "$1/include/NTL/REPORT_ALL_FEATURES.h"
+
+   # need to use printf for this -- echo is not portable enough
+   # to handle the backslash-n
+
+   printf "   std::cerr << \"NTL_HAVE_$f\\\\n\";\n" >> "$1/include/NTL/REPORT_ALL_FEATURES.h" 
+
+   echo "#endif" >> "$1/include/NTL/REPORT_ALL_FEATURES.h"
+   echo "" >> "$1/include/NTL/REPORT_ALL_FEATURES.h"
+
+done
+
+echo "" >> "$1/include/NTL/ALL_FEATURES.h"
