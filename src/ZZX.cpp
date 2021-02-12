@@ -666,7 +666,7 @@ void KarMul(ZZ *c, const ZZ *a,
       return;
    }
 
-   if (sb == 2 && sa == 2) {
+   if (sa == 2) { /* (sa => sb != 1) implies sb == 2 */
       add(c[0], a[0], a[1]);
       add(c[2], b[0], b[1]);
       mul(c[1], c[0], c[2]);
@@ -677,6 +677,30 @@ void KarMul(ZZ *c, const ZZ *a,
 
       return;
 
+   }
+
+   if (sa == 3 && sb == 3) {
+      add(c[0], a[0], a[2]); /* a_0 + a_2 */
+      add(c[2], a[1], a[2]); /* a_1 + a_2 */
+      add(c[1], b[0], b[2]); /* b_0 + b_2 */
+      add(c[4], b[1], b[2]); /* b_1 + b_2 */
+      mul(c[3], c[2], c[4]); /* (a_1 + a_2) x (b_1 + b_2) */
+      mul(c[2], c[0], c[1]); /* (a_0 + a_2) x (b_0 + b_2) */
+      add(c[0], a[0], a[1]); /* a_0 + a_1 */
+      add(c[4], b[0], b[1]); /* b_0 + b_1 */
+      mul(c[1], c[0], c[4]); /* (a_0 + a_1) x (b_0 + b_1) */
+      mul(c[0], a[1], b[1]); /* (a_1) x (b_1) */
+      sub(c[1], c[1], c[0]);
+      sub(c[3], c[3], c[0]);
+      add(c[2], c[2], c[0]);
+      mul(c[0], a[0], b[0]); /* (a_0) x (b_0) */
+      sub(c[1], c[1], c[0]);
+      sub(c[2], c[2], c[0]);
+      mul(c[4], a[2], b[2]); /* (a_2) x (b_2) */
+      sub(c[3], c[3], c[4]);
+      sub(c[2], c[2], c[4]);
+
+      return;
    }
 
    long hsa = (sa + 1) >> 1;
