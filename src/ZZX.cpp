@@ -667,11 +667,11 @@ void KarMul(ZZ *c, const ZZ *a,
    }
 
    if (sb == 2 && sa == 2) {
+      add(c[0], a[0], a[1]);
+      add(c[2], b[0], b[1]);
+      mul(c[1], c[0], c[2]);
       mul(c[0], a[0], b[0]);
       mul(c[2], a[1], b[1]);
-      add(stk[0], a[0], a[1]);
-      add(stk[1], b[0], b[1]);
-      mul(c[1], stk[0], stk[1]);
       sub(c[1], c[1], c[0]);
       sub(c[1], c[1], c[2]);
 
@@ -688,8 +688,8 @@ void KarMul(ZZ *c, const ZZ *a,
 
       ZZ *T1, *T2, *T3;
 
-      T1 = stk; stk += hsa;
-      T2 = stk; stk += hsa;
+      T1 = c;
+      T2 = c + hsa;
       T3 = stk; stk += hsa2 - 1;
 
       /* compute T1 = a_lo + a_hi */
@@ -797,7 +797,7 @@ void KarMul(ZZX& c, const ZZX& a, const ZZX& b)
       depth = 0;
       do {
          hn = (n+1) >> 1;
-         sp += (hn << 2) - 1;
+         sp += (hn << 1) - 1;
          n = hn;
          depth++;
       } while (n >= xover);
@@ -873,10 +873,10 @@ void KarSqr(ZZ *c, const ZZ *a, long sa, ZZ *stk)
       sqr(c[0], a[0]);
       mul(c[1], a[0], a[1]);
       add(c[1], c[1], c[1]);
-      sqr(stk[0], a[1]);
+      sqr(c[3], a[1]);
       mul(c[2], a[0], a[2]);
       add(c[2], c[2], c[2]);
-      add(c[2], c[2], stk[0]);
+      add(c[2], c[2], c[3]);
       mul(c[3], a[1], a[2]);
       add(c[3], c[3], c[3]);
       sqr(c[4], a[2]);
@@ -890,7 +890,7 @@ void KarSqr(ZZ *c, const ZZ *a, long sa, ZZ *stk)
 
    ZZ *T1, *T2;
 
-   T1 = stk; stk += hsa;
+   T1 = c;
    T2 = stk; stk += hsa2-1;
 
    KarFold(T1, a, sa, hsa);
@@ -952,7 +952,7 @@ void KarSqr(ZZX& c, const ZZX& a)
       depth = 0;
       do {
          hn = (n+1) >> 1;
-         sp += hn+hn+hn - 1;
+         sp += hn+hn - 1;
          n = hn;
          depth++;
       } while (n >= xover);

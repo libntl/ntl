@@ -745,10 +745,10 @@ void kar_mul(_ntl_limb_t *c, const _ntl_limb_t *a, long sa,
 
          /* allocate space */
 
-         sp -= (hsa + 1) + (hsa + 1) + ((hsa << 1) + 2);
+         sp -= (hsa + 1) + ((hsa << 1) + 2);
          if (sp < 0) TerminalError("internal error: kmem overflow");
 
-         T1 = stk;  stk += hsa + 1;  
+         T1 = c;
          T2 = stk;  stk += hsa + 1;  
          T3 = stk;  stk += (hsa << 1) + 2; 
 
@@ -808,7 +808,7 @@ void kar_mul(_ntl_limb_t *c, const _ntl_limb_t *a, long sa,
    long sp = 0;
    do {
       long hn = (n+1) >> 1;
-      sp += (hn << 2) + 7;
+      sp += hn * 3 + 7;
       n = hn+1;
    } while (n >= KARX);
 
@@ -835,10 +835,10 @@ void kar_sq(_ntl_limb_t *c, const _ntl_limb_t *a, long sa,
       long hsa = (sa + 1) >> 1;
       _ntl_limb_t *T1, *T2;
 
-      sp -= (hsa + 1) + ((hsa << 1) + 2);
+      sp -= (hsa << 1) + 2;
       if (sp < 0) TerminalError("internal error: kmem overflow");
 
-      T1 = stk;  stk += hsa + 1;
+      T1 = c;
       T2 = stk;  stk += (hsa << 1) + 2;
 
       long sT1 = kar_fold(T1, a, sa, hsa);
@@ -862,7 +862,7 @@ void kar_sq(_ntl_limb_t *c, const _ntl_limb_t *a, long sa)
    long sp = 0;
    do {
       long hn = (n+1) >> 1;
-      sp += 3*hn + 5;
+      sp += 2*hn + 5;
       n = hn+1;
    } while (n >= KARSX);
 

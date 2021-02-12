@@ -559,11 +559,11 @@ void KarMul(GF2X *c, const GF2X *a,
    }
 
    if (sb == 2 && sa == 2) {
+      q_add(c[0], a[0], a[1]);
+      q_add(c[2], b[0], b[1]);
+      mul(c[1], c[0], c[2]);
       mul(c[0], a[0], b[0]);
       mul(c[2], a[1], b[1]);
-      q_add(stk[0], a[0], a[1]);
-      q_add(stk[1], b[0], b[1]);
-      mul(c[1], stk[0], stk[1]);
       q_add(c[1], c[1], c[0]);
       q_add(c[1], c[1], c[2]);
       
@@ -579,8 +579,8 @@ void KarMul(GF2X *c, const GF2X *a,
 
       GF2X *T1, *T2, *T3;
 
-      T1 = stk; stk += hsa;
-      T2 = stk; stk += hsa;
+      T1 = c;
+      T2 = c + hsa;
       T3 = stk; stk += hsa2 - 1;
 
       /* compute T1 = a_lo + a_hi */
@@ -796,7 +796,7 @@ void mul(GF2EX& c, const GF2EX& a, const GF2EX& b)
    sp = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
    } while (n > 1);
 
