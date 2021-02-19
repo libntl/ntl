@@ -558,7 +558,7 @@ void KarMul(GF2X *c, const GF2X *a,
       return;
    }
 
-   if (sb == 2 && sa == 2) {
+   if (sa == 2) { /* (1 < sb <= sa == 2) implies sb == 2 */
       q_add(c[0], a[0], a[1]);
       q_add(c[2], b[0], b[1]);
       mul(c[1], c[0], c[2]);
