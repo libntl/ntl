@@ -1113,7 +1113,7 @@ void KarMul(ZZ_pX& c, const ZZ_pX& a, const ZZ_pX& b)
    depth = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
       depth++;
    } while (n >= xover);

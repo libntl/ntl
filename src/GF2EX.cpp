@@ -871,7 +871,7 @@ void mul_disable_plain(GF2EX& c, const GF2EX& a, const GF2EX& b)
    sp = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
    } while (n > 1);
 
