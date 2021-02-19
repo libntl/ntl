@@ -1041,7 +1041,7 @@ void KarSqr(ZZ_pX& c, const ZZ_pX& a)
    depth = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
       depth++;
    } while (n >= xover);
