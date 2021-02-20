@@ -570,6 +570,30 @@ void KarMul(GF2X *c, const GF2X *a,
       return;
    }
 
+   if (sa == 3 && sb == 3) {
+      q_add(c[0], a[0], a[2]); /* a_0 + a_2 */
+      q_add(c[2], a[1], a[2]); /* a_1 + a_2 */
+      q_add(c[1], b[0], b[2]); /* b_0 + b_2 */
+      q_add(c[4], b[1], b[2]); /* b_1 + b_2 */
+      mul(c[3], c[2], c[4]); /* (a_1 + a_2) x (b_1 + b_2) */
+      mul(c[2], c[0], c[1]); /* (a_0 + a_2) x (b_0 + b_2) */
+      q_add(c[0], a[0], a[1]); /* a_0 + a_1 */
+      q_add(c[4], b[0], b[1]); /* b_0 + b_1 */
+      mul(c[1], c[0], c[4]); /* (a_0 + a_1) x (b_0 + b_1) */
+      mul(c[0], a[1], b[1]); /* (a_1) x (b_1) */
+      q_add(c[1], c[1], c[0]);
+      q_add(c[3], c[3], c[0]);
+      q_add(c[2], c[2], c[0]);
+      mul(c[0], a[0], b[0]); /* (a_0) x (b_0) */
+      q_add(c[1], c[1], c[0]);
+      q_add(c[2], c[2], c[0]);
+      mul(c[4], a[2], b[2]); /* (a_2) x (b_2) */
+      q_add(c[3], c[3], c[4]);
+      q_add(c[2], c[2], c[4]);
+
+      return;
+   }
+
    long hsa = (sa + 1) >> 1;
 
    if (hsa < sb) {
