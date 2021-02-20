@@ -25,7 +25,7 @@ Theoretical Computer Science Volume 410, Issues 27-29, 28 June 2009, Pages
 2649-2658.
 
 I have almost completely re-written David's original code to make it fit into
-NTL's software framework; however, all all of the key logic is still based on
+NTL's software framework; however, all of the key logic is still based on
 David's code.  David's original code also implemented a 2D transformation which
 is more cache friendly for *very* large transforms.  However, my experimens
 indicated this was only beneficial for transforms of size at least 2^20, and so
