@@ -1,3 +1,0 @@
-#ifndef NTL_HAVE_POSIX_TIME
-#define NTL_HAVE_POSIX_TIME
-#endif

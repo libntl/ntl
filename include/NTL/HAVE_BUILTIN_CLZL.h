@@ -1,3 +1,0 @@
-#ifndef NTL_HAVE_BUILTIN_CLZL
-#define NTL_HAVE_BUILTIN_CLZL
-#endif

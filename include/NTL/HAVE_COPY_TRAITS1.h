@@ -1,3 +1,0 @@
-#ifndef NTL_HAVE_COPY_TRAITS1
-#define NTL_HAVE_COPY_TRAITS1
-#endif

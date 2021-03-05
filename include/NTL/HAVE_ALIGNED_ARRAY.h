@@ -1,3 +1,0 @@
-#ifndef NTL_HAVE_ALIGNED_ARRAY
-#define NTL_HAVE_ALIGNED_ARRAY
-#endif
