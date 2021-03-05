@@ -1,1 +1,3 @@
-
+#ifndef NTL_HAVE_CHRONO_TIME
+#define NTL_HAVE_CHRONO_TIME
+#endif

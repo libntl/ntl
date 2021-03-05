@@ -650,7 +650,7 @@ static void PlainMul1(ZZ *xp, const ZZ *ap, long sa, const ZZ& b)
 
 static
 void KarMul(ZZ *c, const ZZ *a, 
-            long sa, const ZZ *b, long sb, ZZ *stk)
+            long sa, const ZZ *b, long sb, ZZ *stk, long sp)
 {
    if (sa < sb) {
       { long t = sa; sa = sb; sb = t; }
@@ -712,6 +712,9 @@ void KarMul(ZZ *c, const ZZ *a,
 
       ZZ *T1, *T2, *T3;
 
+      sp -= hsa2 - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
       T1 = c;
       T2 = c + hsa;
       T3 = stk; stk += hsa2 - 1;
@@ -726,19 +729,19 @@ void KarMul(ZZ *c, const ZZ *a,
 
       /* recursively compute T3 = T1 * T2 */
 
-      KarMul(T3, T1, hsa, T2, hsa, stk);
+      KarMul(T3, T1, hsa, T2, hsa, stk, sp);
 
       /* recursively compute a_hi * b_hi into high part of c */
       /* and subtract from T3 */
 
-      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk);
+      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk, sp);
       KarSub(T3, c + hsa2, sa + sb - hsa2 - 1);
 
 
       /* recursively compute a_lo*b_lo into low part of c */
       /* and subtract from T3 */
 
-      KarMul(c, a, hsa, b, hsa, stk);
+      KarMul(c, a, hsa, b, hsa, stk, sp);
       KarSub(T3, c, hsa2 - 1);
 
       clear(c[hsa2 - 1]);
@@ -752,15 +755,18 @@ void KarMul(ZZ *c, const ZZ *a,
 
       ZZ *T;
 
+      sp -= hsa + sb - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
       T = stk; stk += hsa + sb - 1;
 
       /* recursively compute b*a_hi into high part of c */
 
-      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk);
+      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk, sp);
 
       /* recursively compute b*a_lo into T */
 
-      KarMul(T, a, hsa, b, sb, stk);
+      KarMul(T, a, hsa, b, sb, stk, sp);
 
       KarFix(c, T, hsa + sb - 1, hsa);
    }
@@ -831,7 +837,7 @@ void KarMul(ZZX& c, const ZZX& a, const ZZX& b)
          ((maxa + maxb + NumBits(min(sa, sb)) + 2*depth + 10) 
           + NTL_ZZ_NBITS-1)/NTL_ZZ_NBITS);
 
-      KarMul(cp, ap, sa, bp, sb, stk.elts());
+      KarMul(cp, ap, sa, bp, sb, stk.elts(), sp);
    }
 
    c.normalize();
@@ -1123,7 +1129,7 @@ void KarMul(ZZ_pX& c, const ZZ_pX& a, const ZZ_pX& b)
       ((maxa + maxb + NumBits(min(sa, sb)) + 2*depth + 10) 
        + NTL_ZZ_NBITS-1)/NTL_ZZ_NBITS);
 
-   KarMul(cp, ap, sa, bp, sb, stk.elts());
+   KarMul(cp, ap, sa, bp, sb, stk.elts(), sp);
 
    c.rep.SetLength(sc);
    for (long i = 0; i < sc; i++) conv(c.rep[i], cp[i]);
