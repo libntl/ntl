@@ -542,7 +542,7 @@ void KarFix(GF2X *c, const GF2X *b, long sb, long hsa)
 
 static
 void KarMul(GF2X *c, const GF2X *a, 
-            long sa, const GF2X *b, long sb, GF2X *stk)
+            long sa, const GF2X *b, long sb, GF2X *stk, long sp)
 {
    if (sa < sb) {
       { long t = sa; sa = sb; sb = t; }
@@ -558,15 +558,39 @@ void KarMul(GF2X *c, const GF2X *a,
       return;
    }
 
-   if (sb == 2 && sa == 2) {
+   if (sa == 2) { /* (1 < sb <= sa == 2) implies sb == 2 */
+      q_add(c[0], a[0], a[1]);
+      q_add(c[2], b[0], b[1]);
+      mul(c[1], c[0], c[2]);
       mul(c[0], a[0], b[0]);
       mul(c[2], a[1], b[1]);
-      q_add(stk[0], a[0], a[1]);
-      q_add(stk[1], b[0], b[1]);
-      mul(c[1], stk[0], stk[1]);
       q_add(c[1], c[1], c[0]);
       q_add(c[1], c[1], c[2]);
       
+      return;
+   }
+
+   if (sa == 3 && sb == 3) {
+      q_add(c[0], a[0], a[2]); /* a_0 + a_2 */
+      q_add(c[2], a[1], a[2]); /* a_1 + a_2 */
+      q_add(c[1], b[0], b[2]); /* b_0 + b_2 */
+      q_add(c[4], b[1], b[2]); /* b_1 + b_2 */
+      mul(c[3], c[2], c[4]); /* (a_1 + a_2) x (b_1 + b_2) */
+      mul(c[2], c[0], c[1]); /* (a_0 + a_2) x (b_0 + b_2) */
+      q_add(c[0], a[0], a[1]); /* a_0 + a_1 */
+      q_add(c[4], b[0], b[1]); /* b_0 + b_1 */
+      mul(c[1], c[0], c[4]); /* (a_0 + a_1) x (b_0 + b_1) */
+      mul(c[0], a[1], b[1]); /* (a_1) x (b_1) */
+      q_add(c[1], c[1], c[0]);
+      q_add(c[3], c[3], c[0]);
+      q_add(c[2], c[2], c[0]);
+      mul(c[0], a[0], b[0]); /* (a_0) x (b_0) */
+      q_add(c[1], c[1], c[0]);
+      q_add(c[2], c[2], c[0]);
+      mul(c[4], a[2], b[2]); /* (a_2) x (b_2) */
+      q_add(c[3], c[3], c[4]);
+      q_add(c[2], c[2], c[4]);
+
       return;
    }
 
@@ -579,8 +603,11 @@ void KarMul(GF2X *c, const GF2X *a,
 
       GF2X *T1, *T2, *T3;
 
-      T1 = stk; stk += hsa;
-      T2 = stk; stk += hsa;
+      sp -= hsa2 - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
+      T1 = c;
+      T2 = c + hsa;
       T3 = stk; stk += hsa2 - 1;
 
       /* compute T1 = a_lo + a_hi */
@@ -593,19 +620,19 @@ void KarMul(GF2X *c, const GF2X *a,
 
       /* recursively compute T3 = T1 * T2 */
 
-      KarMul(T3, T1, hsa, T2, hsa, stk);
+      KarMul(T3, T1, hsa, T2, hsa, stk, sp);
 
       /* recursively compute a_hi * b_hi into high part of c */
       /* and subtract from T3 */
 
-      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk);
+      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk, sp);
       KarAdd(T3, c + hsa2, sa + sb - hsa2 - 1);
 
 
       /* recursively compute a_lo*b_lo into low part of c */
       /* and subtract from T3 */
 
-      KarMul(c, a, hsa, b, hsa, stk);
+      KarMul(c, a, hsa, b, hsa, stk, sp);
       KarAdd(T3, c, hsa2 - 1);
 
       clear(c[hsa2 - 1]);
@@ -619,15 +646,18 @@ void KarMul(GF2X *c, const GF2X *a,
 
       GF2X *T;
 
+      sp -= hsa + sb - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
       T = stk; stk += hsa + sb - 1;
 
       /* recursively compute b*a_hi into high part of c */
 
-      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk);
+      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk, sp);
 
       /* recursively compute b*a_lo into T */
 
-      KarMul(T, a, hsa, b, sb, stk);
+      KarMul(T, a, hsa, b, sb, stk, sp);
 
       KarFix(c, T, hsa + sb - 1, hsa);
    }
@@ -796,7 +826,7 @@ void mul(GF2EX& c, const GF2EX& a, const GF2EX& b)
    sp = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
    } while (n > 1);
 
@@ -812,7 +842,7 @@ void mul(GF2EX& c, const GF2EX& a, const GF2EX& b)
       stk[i+2*sa+sb-1] = rep(b.rep[i]);
 
    KarMul(&stk[0], &stk[sa+sb-1], sa, &stk[2*sa+sb-1], sb, 
-          &stk[2*(sa+sb)-1]);
+          &stk[2*(sa+sb)-1], sp);
 
    c.rep.SetLength(sa+sb-1);
 
@@ -871,7 +901,7 @@ void mul_disable_plain(GF2EX& c, const GF2EX& a, const GF2EX& b)
    sp = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
    } while (n > 1);
 
@@ -887,7 +917,7 @@ void mul_disable_plain(GF2EX& c, const GF2EX& a, const GF2EX& b)
       stk[i+2*sa+sb-1] = rep(b.rep[i]);
 
    KarMul(&stk[0], &stk[sa+sb-1], sa, &stk[2*sa+sb-1], sb, 
-          &stk[2*(sa+sb)-1]);
+          &stk[2*(sa+sb)-1], sp);
 
    c.rep.SetLength(sa+sb-1);
 

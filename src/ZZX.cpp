@@ -650,7 +650,7 @@ static void PlainMul1(ZZ *xp, const ZZ *ap, long sa, const ZZ& b)
 
 static
 void KarMul(ZZ *c, const ZZ *a, 
-            long sa, const ZZ *b, long sb, ZZ *stk)
+            long sa, const ZZ *b, long sb, ZZ *stk, long sp)
 {
    if (sa < sb) {
       { long t = sa; sa = sb; sb = t; }
@@ -666,17 +666,41 @@ void KarMul(ZZ *c, const ZZ *a,
       return;
    }
 
-   if (sb == 2 && sa == 2) {
+   if (sa == 2) { /* (sa => sb != 1) implies sb == 2 */
+      add(c[0], a[0], a[1]);
+      add(c[2], b[0], b[1]);
+      mul(c[1], c[0], c[2]);
       mul(c[0], a[0], b[0]);
       mul(c[2], a[1], b[1]);
-      add(stk[0], a[0], a[1]);
-      add(stk[1], b[0], b[1]);
-      mul(c[1], stk[0], stk[1]);
       sub(c[1], c[1], c[0]);
       sub(c[1], c[1], c[2]);
 
       return;
 
+   }
+
+   if (sa == 3 && sb == 3) {
+      add(c[0], a[0], a[2]); /* a_0 + a_2 */
+      add(c[2], a[1], a[2]); /* a_1 + a_2 */
+      add(c[1], b[0], b[2]); /* b_0 + b_2 */
+      add(c[4], b[1], b[2]); /* b_1 + b_2 */
+      mul(c[3], c[2], c[4]); /* (a_1 + a_2) x (b_1 + b_2) */
+      mul(c[2], c[0], c[1]); /* (a_0 + a_2) x (b_0 + b_2) */
+      add(c[0], a[0], a[1]); /* a_0 + a_1 */
+      add(c[4], b[0], b[1]); /* b_0 + b_1 */
+      mul(c[1], c[0], c[4]); /* (a_0 + a_1) x (b_0 + b_1) */
+      mul(c[0], a[1], b[1]); /* (a_1) x (b_1) */
+      sub(c[1], c[1], c[0]);
+      sub(c[3], c[3], c[0]);
+      add(c[2], c[2], c[0]);
+      mul(c[0], a[0], b[0]); /* (a_0) x (b_0) */
+      sub(c[1], c[1], c[0]);
+      sub(c[2], c[2], c[0]);
+      mul(c[4], a[2], b[2]); /* (a_2) x (b_2) */
+      sub(c[3], c[3], c[4]);
+      sub(c[2], c[2], c[4]);
+
+      return;
    }
 
    long hsa = (sa + 1) >> 1;
@@ -688,8 +712,11 @@ void KarMul(ZZ *c, const ZZ *a,
 
       ZZ *T1, *T2, *T3;
 
-      T1 = stk; stk += hsa;
-      T2 = stk; stk += hsa;
+      sp -= hsa2 - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
+      T1 = c;
+      T2 = c + hsa;
       T3 = stk; stk += hsa2 - 1;
 
       /* compute T1 = a_lo + a_hi */
@@ -702,19 +729,19 @@ void KarMul(ZZ *c, const ZZ *a,
 
       /* recursively compute T3 = T1 * T2 */
 
-      KarMul(T3, T1, hsa, T2, hsa, stk);
+      KarMul(T3, T1, hsa, T2, hsa, stk, sp);
 
       /* recursively compute a_hi * b_hi into high part of c */
       /* and subtract from T3 */
 
-      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk);
+      KarMul(c + hsa2, a+hsa, sa-hsa, b+hsa, sb-hsa, stk, sp);
       KarSub(T3, c + hsa2, sa + sb - hsa2 - 1);
 
 
       /* recursively compute a_lo*b_lo into low part of c */
       /* and subtract from T3 */
 
-      KarMul(c, a, hsa, b, hsa, stk);
+      KarMul(c, a, hsa, b, hsa, stk, sp);
       KarSub(T3, c, hsa2 - 1);
 
       clear(c[hsa2 - 1]);
@@ -728,15 +755,18 @@ void KarMul(ZZ *c, const ZZ *a,
 
       ZZ *T;
 
+      sp -= hsa + sb - 1;
+      if (sp < 0) TerminalError("internal error: KarMul overflow");
+
       T = stk; stk += hsa + sb - 1;
 
       /* recursively compute b*a_hi into high part of c */
 
-      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk);
+      KarMul(c + hsa, a + hsa, sa - hsa, b, sb, stk, sp);
 
       /* recursively compute b*a_lo into T */
 
-      KarMul(T, a, hsa, b, sb, stk);
+      KarMul(T, a, hsa, b, sb, stk, sp);
 
       KarFix(c, T, hsa + sb - 1, hsa);
    }
@@ -797,7 +827,7 @@ void KarMul(ZZX& c, const ZZX& a, const ZZX& b)
       depth = 0;
       do {
          hn = (n+1) >> 1;
-         sp += (hn << 2) - 1;
+         sp += (hn << 1) - 1;
          n = hn;
          depth++;
       } while (n >= xover);
@@ -807,7 +837,7 @@ void KarMul(ZZX& c, const ZZX& a, const ZZX& b)
          ((maxa + maxb + NumBits(min(sa, sb)) + 2*depth + 10) 
           + NTL_ZZ_NBITS-1)/NTL_ZZ_NBITS);
 
-      KarMul(cp, ap, sa, bp, sb, stk.elts());
+      KarMul(cp, ap, sa, bp, sb, stk.elts(), sp);
    }
 
    c.normalize();
@@ -873,10 +903,10 @@ void KarSqr(ZZ *c, const ZZ *a, long sa, ZZ *stk)
       sqr(c[0], a[0]);
       mul(c[1], a[0], a[1]);
       add(c[1], c[1], c[1]);
-      sqr(stk[0], a[1]);
+      sqr(c[3], a[1]);
       mul(c[2], a[0], a[2]);
       add(c[2], c[2], c[2]);
-      add(c[2], c[2], stk[0]);
+      add(c[2], c[2], c[3]);
       mul(c[3], a[1], a[2]);
       add(c[3], c[3], c[3]);
       sqr(c[4], a[2]);
@@ -890,7 +920,7 @@ void KarSqr(ZZ *c, const ZZ *a, long sa, ZZ *stk)
 
    ZZ *T1, *T2;
 
-   T1 = stk; stk += hsa;
+   T1 = c;
    T2 = stk; stk += hsa2-1;
 
    KarFold(T1, a, sa, hsa);
@@ -952,7 +982,7 @@ void KarSqr(ZZX& c, const ZZX& a)
       depth = 0;
       do {
          hn = (n+1) >> 1;
-         sp += hn+hn+hn - 1;
+         sp += hn+hn - 1;
          n = hn;
          depth++;
       } while (n >= xover);
@@ -1017,7 +1047,7 @@ void KarSqr(ZZ_pX& c, const ZZ_pX& a)
    depth = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
       depth++;
    } while (n >= xover);
@@ -1089,7 +1119,7 @@ void KarMul(ZZ_pX& c, const ZZ_pX& a, const ZZ_pX& b)
    depth = 0;
    do {
       hn = (n+1) >> 1;
-      sp += (hn << 2) - 1;
+      sp += (hn << 1) - 1;
       n = hn;
       depth++;
    } while (n >= xover);
@@ -1099,7 +1129,7 @@ void KarMul(ZZ_pX& c, const ZZ_pX& a, const ZZ_pX& b)
       ((maxa + maxb + NumBits(min(sa, sb)) + 2*depth + 10) 
        + NTL_ZZ_NBITS-1)/NTL_ZZ_NBITS);
 
-   KarMul(cp, ap, sa, bp, sb, stk.elts());
+   KarMul(cp, ap, sa, bp, sb, stk.elts(), sp);
 
    c.rep.SetLength(sc);
    for (long i = 0; i < sc; i++) conv(c.rep[i], cp[i]);
