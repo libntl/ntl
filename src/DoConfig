@@ -47,6 +47,8 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 
 'TUNE'         => 'generic',
 
+'PACKAGE_VERSION'  => undef,
+
 );
 
 
@@ -283,6 +285,12 @@ if ($ConfigFlag{'NTL_GF2X_LIB'} eq 'on') {
    }
 }
 
+# retrieve ntl version from DIRNAME
+open(DIRNAME, "< DIRNAME");
+@versionline = split('-',<DIRNAME>);
+chomp($versionline[1]);
+$MakeVal{'PACKAGE_VERSION'} = $versionline[1];
+close(DIRNAME);
 
 # copy %MakeVal and %MakeFlag as is into %MakeSub
 

@@ -13,7 +13,7 @@ includedir=@{INCLUDEDIR}/NTL
 Name: ntl
 URL: http://www.shoup.net/
 Description: A library for doing number theory
-#Version: @PACKAGE_VERSION@
+Version: @{PACKAGE_VERSION}
 Libs: -L${libdir} -lntl
 Cflags: -I${includedir} @{CXXAUTOFLAGS}
 Requires.private: ${GF2X_PKG} ${GMP_PKG}
