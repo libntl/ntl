@@ -1,0 +1,19 @@
+# Define these NTL configuration variables as they may not be 
+# substited by DoConfig
+DEF_PREFIX=@{DEF_PREFIX}
+PREFIX=@{PREFIX}
+# optional dependencies
+@{GF2X}GF2X_PKG=gf2x
+@{GMP}GMP_PKG=gmp
+# Normal pc file starts here
+prefix=@{PREFIX}
+libdir=@{LIBDIR}
+includedir=@{INCLUDEDIR}/NTL
+
+Name: ntl
+URL: http://www.shoup.net/
+Description: A library for doing number theory
+#Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lntl
+Cflags: -I${includedir} @{CXXAUTOFLAGS}
+Requires.private: ${GF2X_PKG} ${GMP_PKG}

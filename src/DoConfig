@@ -397,7 +397,22 @@ sub GenFiles {
    close(MFILE);
    close(MFILEOUT);
    
-   
+   # generate ntl.pc
+
+   open(NTLPCIN, "< ntl.pc.in");
+   open(NTLPC, "> ntl.pc");
+
+   while ($line = <NTLPCIN>) {
+
+      $line =~ s/@\{(.*?)\}/$MakeSub{$1}/ge;
+
+      print NTLPC $line;
+
+   }
+
+   close(NTLPCIN);
+   close(NTLPC);
+
    # generate config.h
    
    
