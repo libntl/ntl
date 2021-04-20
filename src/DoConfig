@@ -413,6 +413,7 @@ sub GenFiles {
    while ($line = <NTLPCIN>) {
 
       $line =~ s/@\{(.*?)\}/$MakeSub{$1}/ge;
+      $line =~ tr/()/{}/;
 
       print NTLPC $line;
 
