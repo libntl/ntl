@@ -8,7 +8,7 @@ PREFIX=@{PREFIX}
 # Normal pc file starts here
 prefix=@{PREFIX}
 libdir=@{LIBDIR}
-includedir=@{INCLUDEDIR}/NTL
+includedir=@{INCLUDEDIR}
 
 Name: ntl
 URL: http://www.shoup.net/
