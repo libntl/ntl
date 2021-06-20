@@ -1975,6 +1975,7 @@ void old_RandomStream::do_get(unsigned char *res, long n)
 
 /* Size must be a multiple of AES block-size (16 bytes). */
 #define BUFSIZE                 4096
+//#define BUFSIZE                 8192
 
 static void
 inc32(unsigned char ctr[16])
@@ -2195,7 +2196,7 @@ FUNC(12, MAKE12)
 void crypto_stream(
 unsigned char *out,
 unsigned long long outlen,
-const unsigned char *n,
+unsigned char *n,
 const unsigned char *k
 )
 {
