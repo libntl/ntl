@@ -9,16 +9,17 @@
 
 using namespace std;
 
+#if (NTL_BITS_PER_LONG != 64)
+#error "NTL_BITS_PER_LONG != 64"
+#endif
+
 int main()
 {
-   __m128i out, rkeys[16] = {0}, nv;
-   __m128i temp = _mm_xor_si128(nv, rkeys[0]);
-   int i;
+  __m128i a=_mm_cvtsi64x_si128(atol("17"));
+  __m128i key=_mm_cvtsi64x_si128(atol("42"));
+  a = _mm_aesenclast_si128(a, key);
+  long x = _mm_cvtsi128_si64x(a);
+  if (x != atol("7161677110969590696")) return -1;
 
-   for (i = 1 ; i < 14 ; i++) {
-      temp = _mm_aesenc_si128(temp, rkeys[i]);
-   }
-   temp = _mm_aesenclast_si128(temp, rkeys[14]);
-   _mm_store_si128(&out, temp);
-   return 0;
+  return 0;
 }

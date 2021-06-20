@@ -74,15 +74,16 @@ NATIVE=on
 # their fullest potential.  Note that if CXXFLAGS contains an '-march=XXX'
 # option, then NATIVE will be turned off.
 
-TUNE=generic (or x86)
+TUNE=generic (or x86 or linux-s390x)
 
 # Switch to determine how various performance options get set
 #   auto        make runs a performance-tuning wizard 
 #   generic     should be OK for most platforms
 #   x86         should be well suited for most x86 platforms
+#   linux-s390x should be OK for IBM/System 390x running on Linux
 # More choices may be added in the future.
-# The default is 'x86' if the configuration script detects that it 
-# is running on an x86 machine; otherwise the default is 'generic'.
+# The default is 'generic', unless the configuration script detects
+# that 'x86' or 'linux-s390x' makes sense.
 
 
 ########## Installation path:

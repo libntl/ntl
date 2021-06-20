@@ -2076,10 +2076,27 @@ static inline void aesni_encrypt1(unsigned char *out, unsigned char *n, __m128i 
    __m128i nv = _mm_load_si128((const __m128i *)n);
    int i;
    __m128i temp = _mm_xor_si128(nv, rkeys[0]);
+#if 0
+// This pragma is not recognized by GCC < 8
 #pragma unroll(13)
    for (i = 1 ; i < 14 ; i++) {
       temp = _mm_aesenc_si128(temp, rkeys[i]);
    }
+#else
+   temp = _mm_aesenc_si128(temp, rkeys[ 1]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 2]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 3]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 4]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 5]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 6]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 7]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 8]);
+   temp = _mm_aesenc_si128(temp, rkeys[ 9]);
+   temp = _mm_aesenc_si128(temp, rkeys[10]);
+   temp = _mm_aesenc_si128(temp, rkeys[11]);
+   temp = _mm_aesenc_si128(temp, rkeys[12]);
+   temp = _mm_aesenc_si128(temp, rkeys[13]);
+#endif
    temp = _mm_aesenclast_si128(temp, rkeys[14]);
    _mm_store_si128((__m128i*)(out), temp);
 }
@@ -2160,6 +2177,12 @@ static inline void incle(unsigned char n[16]) {
   X(4);X(5);X(6);X(7);                          \
   X(8);X(9);X(10);X(11)
 
+#define MAKE16(X)                               \
+  X(0);X(1);X(2);X(3);                          \
+  X(4);X(5);X(6);X(7);                          \
+  X(8);X(9);X(10);X(11);                        \
+  X(12);X(13);X(14);X(15)
+
 /* create a function of unrolling N ; the MAKEN is the unrolling
    macro, defined above. The N in MAKEN must match N, obviously. */
 #define FUNC(N, MAKEN)                          \
@@ -2192,6 +2215,7 @@ FUNC(7, MAKE7)
 FUNC(8, MAKE8)
 FUNC(10, MAKE10)
 FUNC(12, MAKE12)
+FUNC(16, MAKE16)
 
 void crypto_stream(
 unsigned char *out,
@@ -2854,11 +2878,17 @@ struct RandomStream_impl {
 
    void set_nonce(unsigned long nonce)
    {
+      // low-order  8 bytes of iv set to zero
+      // high-order 8 bytes of iv set to nonce
       memset(iv, 0, sizeof(iv));
-      iv[15] = (unsigned char)(0xffffffff & nonce);
-      iv[14] = (unsigned char)((0xffffffff & nonce) >> 8);
-      iv[13] = (unsigned char)((0xffffffff & nonce) >> 16);
-      iv[12] = (unsigned char)((0xffffffff & nonce) >> 24);
+      iv[ 8] = (unsigned char) nonce; nonce >>= 8;
+      iv[ 9] = (unsigned char) nonce; nonce >>= 8;
+      iv[10] = (unsigned char) nonce; nonce >>= 8;
+      iv[11] = (unsigned char) nonce; nonce >>= 8;
+      iv[12] = (unsigned char) nonce; nonce >>= 8;
+      iv[13] = (unsigned char) nonce; nonce >>= 8;
+      iv[14] = (unsigned char) nonce; nonce >>= 8;
+      iv[15] = (unsigned char) nonce; nonce >>= 8;
    }
 };
 
