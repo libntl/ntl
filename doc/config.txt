@@ -14,7 +14,8 @@ CXXFLAGS=-g -O2      # C++ complilation flags
 
 NATIVE=on            # compiles code targeted to current hardware
 
-TUNE=generic (or x86)# performance-tuning switch
+TUNE=generic         # performance-tuning switch  
+(or x86 or linux-s390x) 
 
 DEF_PREFIX=/usr/local# Default software directory
 
@@ -46,6 +47,8 @@ NTL_ENABLE_AVX_FFT=off # implement the small-prime FFT using AVX
 
 NTL_AVOID_AVX512=off # avoid using 512-bit AVX registers
 
+NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
+
 
 ########## Here are more detailed description of these variables.
 
@@ -72,15 +75,19 @@ NATIVE=on
 # their fullest potential.  Note that if CXXFLAGS contains an '-march=XXX'
 # option, then NATIVE will be turned off.
 
-TUNE=generic (or x86)
+TUNE=generic (or x86 or linux-s390x)
 
 # Switch to determine how various performance options get set
 #   auto        make runs a performance-tuning wizard 
 #   generic     should be OK for most platforms
 #   x86         should be well suited for most x86 platforms
+#   linux-s390x should be well suited for Linux on IBM Z platforms from z15 onward
 # More choices may be added in the future.
-# The default is 'x86' if the configuration script detects that it 
-# is running on an x86 machine; otherwise the default is 'generic'.
+# Right now, the default is
+# - x86, if configure detects that is is running on an x86 platform,
+# - linux-s390x, if configure detects that it is running on Linux on an IBM Z platform
+#   and the compiler is either gcc or clang, and
+# - generic, otherwise.
 
 
 ########## Installation path:
@@ -256,6 +263,22 @@ Even if available, this will avoid the use of 512-bit AVX registers.  This
 affects both Mat<zz_p> operations, as well as the AVX-based FFT (see above).
 
 
+########### Use AES-256-CTR based pseudorandom generator
+
+NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
+
+AES-256-CTR based pseudorandom generation may be faster than the
+default in case AES instruction set extensions are available on
+the processor and supported by the implementations.
+
+The implementation supports the following AES instruction set
+extensions if detected at build time:
+
+ x86         : AES-NI
+ linux-s390x : KMA
+
+Be aware of possible interoperability issues when changing
+the implementation of NTL's pseudorandom generator object.
 
 
 ########### Examples:

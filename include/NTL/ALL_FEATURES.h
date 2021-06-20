@@ -13,4 +13,6 @@
 #include <NTL/HAVE_CHRONO_TIME.h>
 #include <NTL/HAVE_MACOS_TIME.h>
 #include <NTL/HAVE_POSIX_TIME.h>
+#include <NTL/HAVE_AES_NI.h>
+#include <NTL/HAVE_KMA.h>
 

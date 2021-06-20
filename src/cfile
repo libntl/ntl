@@ -513,6 +513,19 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
+#if @{NTL_RANDOM_AES256CTR}
+#define NTL_RANDOM_AES256CTR
+
+/*
+ * By default, the random-number generator is based on ChaCha20.
+ * From a performance perspective, this choice may not be optimal
+ * for platforms featuring AES hardware support.
+ * By setting this flag you can override the default and use an
+ * AES-256-CTR based random-number generator.
+ *
+ */
+
+#endif
 
 
 /* sanity checks */

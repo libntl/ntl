@@ -178,6 +178,12 @@ int main()
    cout << "NTL_AVOID_AVX512=0\n";
 #endif
 
+#ifdef NTL_RANDOM_AES256CTR
+   cout << "NTL_RANDOM_AES256CTR=1\n";
+#else
+   cout << "NTL_RANDOM_AES256CTR=0\n";
+#endif
+
 #ifdef NTL_RANGE_CHECK
    cout << "NTL_RANGE_CHECK=1\n";
 #else

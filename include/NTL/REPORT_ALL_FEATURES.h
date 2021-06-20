@@ -55,3 +55,11 @@
    std::cerr << "NTL_HAVE_POSIX_TIME\n";
 #endif
 
+#ifdef NTL_HAVE_AES_NI
+   std::cerr << "NTL_HAVE_AES_NI\n";
+#endif
+
+#ifdef NTL_HAVE_KMA
+   std::cerr << "NTL_HAVE_KMA\n";
+#endif
+
