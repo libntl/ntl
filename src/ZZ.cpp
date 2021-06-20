@@ -17,7 +17,7 @@
 #endif
 
 #if defined(NTL_HAVE_KMA)
-#include "linux_s390x.h"
+#include <NTL/linux_s390x.h>
 #endif
 
 
