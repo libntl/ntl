@@ -230,7 +230,8 @@ CXX=g++              # The C++ compiler
 CXXFLAGS=-g -O2      # C++ complilation flags
 
 NATIVE=on            # Compiles code targeted to the current hardware (see below)
-TUNE=generic         # Performance-tuning switch (see below)
+TUNE=generic         # performance-tuning switch (see below)
+(or x86 or linux-s390x)
 
 DEF_PREFIX=/usr/local# Default software directory
 
@@ -413,8 +414,8 @@ Alternatively, you can set <tt>TUNE</tt> to one of the following values.
 </ul>
 More choices may be added in the future.
 Right now, the default is <tt>x86</tt> if the <tt>configure</tt>
-detects that is is running on an x86 platform, linux-s390x if the
-<tt>configure</tt> detects that it is running on Linux on IBM z
+detects that is is running on an x86 platform, <tt>linux-s390x</tt> if the
+<tt>configure</tt> detects that it is running on Linux on IBM System/390x
 and the compiler is either gcc or clang, and <tt>generic</tt>
 otherwise.
 
