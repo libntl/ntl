@@ -81,10 +81,13 @@ TUNE=generic (or x86 or linux-s390x)
 #   auto        make runs a performance-tuning wizard 
 #   generic     should be OK for most platforms
 #   x86         should be well suited for most x86 platforms
-#   linux-s390x should be OK for IBM/System 390x running on Linux
+#   linux-s390x should be well suited for Linux on IBM Z platforms from z15 onward
 # More choices may be added in the future.
-# The default is 'generic', unless the configuration script detects
-# that 'x86' or 'linux-s390x' makes sense.
+# Right now, the default is
+# - x86, if configure detects that is is running on an x86 platform,
+# - linux-s390x, if configure detects that it is running on Linux on an IBM Z platform
+#   and the compiler is either gcc or clang, and
+# - generic, otherwise.
 
 
 ########## Installation path:

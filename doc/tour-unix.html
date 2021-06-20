@@ -413,11 +413,19 @@ Alternatively, you can set <tt>TUNE</tt> to one of the following values.
 <li> <tt>linux-s390x</tt>: chooses options that should be well suited for Linux on IBM Z platforms from z15 onward.
 </ul>
 More choices may be added in the future.
-Right now, the default is <tt>x86</tt> if the <tt>configure</tt>
-detects that is is running on an x86 platform, <tt>linux-s390x</tt> if the
-<tt>configure</tt> detects that it is running on Linux on IBM System/390x
-and the compiler is either gcc or clang, and <tt>generic</tt>
+Right now, the default is 
+<ul>
+<li>
+<tt>x86</tt>, if <tt>configure</tt>
+detects that is is running on an x86 platform, 
+<li>
+<tt>linux-s390x</tt>, if 
+<tt>configure</tt> detects that it is running on Linux on an IBM Z platform
+and the compiler is either gcc or clang, and 
+<li>
+<tt>generic</tt>,
 otherwise.
+</ul>
 
 
 
