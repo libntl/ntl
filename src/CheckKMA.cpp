@@ -1,9 +1,9 @@
 #include <NTL/ctools.h>
+#include <NTL/linux_s390x.h>
 
 #include <cstdlib>
 #include <iostream>
 
-#include "linux_s390x.h"
 
 using namespace std;
 
