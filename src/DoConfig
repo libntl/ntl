@@ -47,6 +47,8 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 
 'TUNE'         => 'generic',
 
+'PACKAGE_VERSION'  => undef,
+
 );
 
 
@@ -284,6 +286,12 @@ if ($ConfigFlag{'NTL_GF2X_LIB'} eq 'on') {
    }
 }
 
+# retrieve ntl version from DIRNAME
+open(DIRNAME, "< DIRNAME");
+@versionline = split('-',<DIRNAME>);
+chomp($versionline[1]);
+$MakeVal{'PACKAGE_VERSION'} = $versionline[1];
+close(DIRNAME);
 
 # copy %MakeVal and %MakeFlag as is into %MakeSub
 
@@ -398,7 +406,23 @@ sub GenFiles {
    close(MFILE);
    close(MFILEOUT);
    
-   
+   # generate ntl.pc
+
+   open(NTLPCIN, "< ntl.pc.in");
+   open(NTLPC, "> ntl.pc");
+
+   while ($line = <NTLPCIN>) {
+
+      $line =~ s/@\{(.*?)\}/$MakeSub{$1}/ge;
+      $line =~ tr/()/{}/;
+
+      print NTLPC $line;
+
+   }
+
+   close(NTLPCIN);
+   close(NTLPC);
+
    # generate config.h
    
    

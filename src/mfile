@@ -454,7 +454,9 @@ install:
 @{LSTAT}	cp -p ntl.a $(DESTDIR)$(LIBDIR)/libntl.a #LSTAT
 @{LSTAT}	- chmod a+r $(DESTDIR)$(LIBDIR)/libntl.a #LSTAT
 @{LSHAR}	$(LIBTOOL) --mode=install cp -p libntl.la $(DESTDIR)$(LIBDIR) #LSHAR
-
+	mkdir -p -m 755 $(DESTDIR)$(LIBDIR)/pkgconfig
+	cp -p ntl.pc $(DESTDIR)$(LIBDIR)/pkgconfig/
+	- chmod a+r $(DESTDIR)$(LIBDIR)/pkgconfig/ntl.pc
 
 uninstall:
 @{LSTAT}	rm -f $(LIBDIR)/libntl.a #LSTAT
