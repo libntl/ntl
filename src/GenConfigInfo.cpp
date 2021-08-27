@@ -32,8 +32,8 @@ int main()
    else                                  language_standard = 0;
 
    const char *compiler_name = "unknown";
-
    const char *cpu_type = "unknown";
+   const char *os_name = "unknown";
 
 #if defined(__INTEL_COMPILER)
    compiler_name = "icc";
@@ -47,9 +47,15 @@ int main()
 
 #if defined(__x86_64__) || defined(__x86_64) || defined(__i386__) || defined(__i386)
    cpu_type = "x86";
+#elif defined(__s390x__)
+   cpu_type = "s390x";
+#endif
+
+#if defined(__linux__)
+   os_name = "linux";
 #endif
 
    std::cout << "(" << compiler_name << "," << language_standard 
-             << "," << cpu_type << ")\n";
+             << "," << cpu_type << "," << os_name << ")\n";
 
 }

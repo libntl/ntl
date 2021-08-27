@@ -18,6 +18,48 @@ A Tour of NTL: Summary of Changes
 
 <p><hr><p>
 <h3>
+2021.06.23: Changes between NTL 11.5.0 and 11.5.1
+</h3>
+
+<ul>
+<li>
+Fixed bug that prevented compilation on IBM Z.
+</ul>
+
+<p><hr><p>
+<h3>
+2021.06.20: Changes between NTL 11.4.4 and 11.5.0
+</h3>
+
+<ul>
+<li>
+Added a new configuration option <tt>NTL_RANDOM_AES256CTR</tt>.
+The default is <tt>off</tt>.
+Configure with <tt>NTL_RANDOM_AES256CTR=on</tt>
+to replace the default ChaCha20 Pseudo-Random Number Generator (PRNG)
+with 256-bit AES counter mode.
+On certain plaforms (modern <tt>x86</tt> and IBM System/390x),
+special instructions are exploited to improve performance.
+<p>
+Using AES in place of ChaCha may break inter-operability of 
+applications that depend on the behavior of the PRNG.
+<p>
+Using AES in place of ChaCha may affect the performance positively
+or negatively.
+On IBM System/390x, there is a marked performance improvement.
+On <tt>x86</tt> there may be a moderate performance improvement
+or degredation.
+On any other platforms, where there is no hardware support
+for AES (or none that is exploited by NTL),  there will likely be a marked performance
+degredation.
+
+<p>
+Thanks to Patrick Steuer for contributing this code.
+</ul>
+
+
+<p><hr><p>
+<h3>
 2021.03.05: Changes between NTL 11.4.3 and 11.4.4
 </h3>
 

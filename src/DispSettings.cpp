@@ -188,6 +188,11 @@ cout << "Performance Options:\n";
 #endif
 
 
+#ifdef NTL_RANDOM_AES256CTR
+   cout << "NTL_RANDOM_AES256CTR\n";
+#endif
+
+
    cout << "***************************/\n";
    cout << "\n\n";
 

@@ -181,7 +181,8 @@ INCL=FFT.h FFT_impl.h FacVec.h GF2.h GF2E.h GF2EX.h GF2EXFactoring.h GF2X.h  \
 	vec_vec_GF2E.h vec_vec_RR.h vec_vec_ZZ.h vec_vec_ZZ_p.h vec_vec_ZZ_pE.h  \
 	vec_vec_long.h vec_vec_lzz_p.h vec_vec_lzz_pE.h vec_xdouble.h xdouble.h  \
 	config.h version.h new.h vec_ulong.h vec_vec_ulong.h SmartPtr.h  \
-	Lazy.h LazyTable.h thread.h  BasicThreadPool.h MatPrime.h PD.h pd_FFT.h
+	Lazy.h LazyTable.h thread.h  BasicThreadPool.h MatPrime.h PD.h pd_FFT.h  \
+	linux_s390x.h
 
 
 
@@ -220,7 +221,7 @@ AUXPROGS = TestGetTime TestGetPID CheckFeatures CheckCompile GenConfigInfo Check
 	CheckThreads
 
 FEATURES=ALIGNED_ARRAY BUILTIN_CLZL LL_TYPE SSSE3 AVX PCLMUL AVX2 FMA AVX512F \
-	COPY_TRAITS1 COPY_TRAITS2 CHRONO_TIME MACOS_TIME POSIX_TIME
+	COPY_TRAITS1 COPY_TRAITS2 CHRONO_TIME MACOS_TIME POSIX_TIME AES_NI KMA
 
 
 # documentation
