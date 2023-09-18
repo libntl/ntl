@@ -1753,6 +1753,78 @@ void SqrTrunc(ZZ_pX& x, const ZZ_pX& a, long n)
 }
 
 
+// slight variant of https://homepages.loria.fr/PZimmermann/papers/fastnewton.ps.gz §5
+static void ExpTruncFast(ZZ_pX& f, ZZ_pX& g, const ZZ_pX& h, long prec)
+{
+   switch (prec) {
+      case 0:
+         clear(f);
+         clear(g);
+         return;
+      case 1:
+         f = 1;
+         clear(g);
+         return;
+      case 2:
+         f = 1 + trunc(h, 2);
+         g = 1;
+         return;
+      case 3:
+         f = 1 + trunc(h, 3) + MulTrunc(h, h, 3) / 2;
+         g = 1 - trunc(h, 2);
+         return;
+   }
+
+   {
+      ZZ_pX h2 = MulTrunc(h, h, 4) / 2;
+      ZZ_pX h3 = MulTrunc(h, h2, 4) / 3;
+      f = 1 + trunc(h, 4) + h2 + h3;
+      g = 1 - trunc(h, 2);
+   }
+
+   // invariant: f = exp(h) + O(x^n), g = exp(-h) + O(x^(n/2))
+   for (long n = 4; n < prec; n *= 2) {
+
+      // step 2
+      ZZ_pX m1 = MulTrunc(f, sqr(g), n);
+      g.SetLength(n);
+      for (long i = n/2; i < n; ++i)
+         g[i] = -coeff(m1, i);
+      g.normalize();
+
+      // step 3
+      ZZ_pX q = diff(trunc(h, n));
+
+      // step 4
+      ZZ_pX s = MulTrunc(g, f*q >> (n-1), n);
+      q.SetLength(2*n-1);
+      for (long i = 0; i <= deg(s); ++i)
+         q[n-1+i] = -s[i];
+      q.normalize();
+
+      // step 5
+      unsigned long length = NTL::min(deg(q)+2, prec);
+      ZZ_pX intq;
+      intq.SetLength(length);
+      intq[0] = 0;
+      for (long i = 1; i < length; ++i)
+         intq[i] = q[i-1] / i;
+      intq.normalize();
+      f = MulTrunc(f, 1 + h - intq, NTL::min(2*n, prec));
+   }
+}
+
+void ExpTrunc(ZZ_pX& x, const ZZ_pX& a, long n)
+{
+   if (n < 1)
+      LogicError("ExpTrunc: bad args");
+   if (ConstTerm(a) != 0)
+      LogicError("ExpTrunc: nonzero constant term");
+   ZZ_pX y;
+   ExpTruncFast(x, y, a, n);
+}
+
+
 void FastTraceVec(vec_ZZ_p& S, const ZZ_pX& f)
 {
    long n = deg(f);
