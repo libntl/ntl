@@ -272,6 +272,20 @@ inline void conv(unsigned int& x, const ZZ& a)
 inline unsigned int to_uint(const ZZ& a)  
    { return (unsigned int)(_ntl_gtouint(a.rep)); }
 
+inline void conv(unsigned long& x, const ZZ& a) { x = _ntl_gtouint(a.rep); }
+inline unsigned long to_ulong(const ZZ& a)  { return _ntl_gtouint(a.rep); }
+
+#if NTL_BITS_PER_LONGLONG == NTL_BITS_PER_LONG
+inline void conv(unsigned long long& x, const ZZ& a) { x = (unsigned long long) _ntl_gtouint(a.rep); }
+inline unsigned long long to_ulonglong(const ZZ& a)  { return (unsigned long long) _ntl_gtouint(a.rep); }
+inline void conv(ZZ& x, unsigned long a) { _ntl_guintoz(a, &x.rep); }
+inline ZZ to_ZZ(unsigned long a) { return ZZ(INIT_VAL, a); }
+#elif NTL_BITS_PER_LONGLONG == (2*NTL_BITS_PER_LONG)
+// FIXME: decide on:
+// * do we want to expose double-width conversion (NTL_ULL_TYPE)?
+// * do we want to have a signed version (create a NTL_LL_TYPE)?
+#endif
+
 inline void conv(double& x, const ZZ& a) { x = _ntl_gdoub(a.rep); }
 inline double to_double(const ZZ& a) { return _ntl_gdoub(a.rep); }
 
