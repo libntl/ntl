@@ -416,7 +416,6 @@ inline long _ntl_PINNED(_ntl_gbigint p)
     void _ntl_gintoz(long d, _ntl_gbigint *a);
        /* *a = d;  */
 
-
     void _ntl_guintoz(unsigned long d, _ntl_gbigint *a);
        /* *a = d;  space is allocated  */
 
@@ -428,8 +427,21 @@ inline long _ntl_PINNED(_ntl_gbigint p)
        /* converts a to a long;  overflow results in value
           mod 2^{NTL_BITS_PER_LONG}. */
 
-   
+#ifdef NTL_HAVE_LL_TYPE
+    void ntl_gdintoz(NTL_LL_TYPE d, _ntl_gbigint *a);
+       /* *a = d;  */
 
+    void ntl_gudintoz(NTL_ULL_TYPE d, _ntl_gbigint *a);
+       /* *a = d;  space is allocated  */
+
+    NTL_LL_TYPE _ntl_gtodint(_ntl_gbigint a);
+      /* converts a to a double-word type;  overflow results in value
+         mod 2^{2 * NTL_BITS_PER_LONG}. */
+
+    NTL_ULL_TYPE _ntl_gtoudint(_ntl_gbigint a);
+      /* converts a to a double-word type;  overflow results in value
+         mod 2^{2 * NTL_BITS_PER_LONG}. */
+#endif
 
     double _ntl_gdoub(_ntl_gbigint n);
        /* converts a to a double;  no overflow check */
