@@ -1126,6 +1126,7 @@ int main()
    fprintf(stderr, "\n*** GOOD NEWS: compatible machine.\n");
    fprintf(stderr, "summary of machine characteristics:\n");
    fprintf(stderr, "bits per long = %ld\n", bpl);
+   fprintf(stderr, "bits per long long = %ld\n", bpll);
    fprintf(stderr, "bits per int = %ld\n", bpi);
    fprintf(stderr, "bits per size_t = %ld\n", bpt);
    fprintf(stderr, "arith right shift = %s\n", yn_vec[rs_arith]);
