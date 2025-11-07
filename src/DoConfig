@@ -59,7 +59,7 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 'LIBDIR'      => '$(PREFIX)/lib',
 'INCLUDEDIR'  => '$(PREFIX)/include',
 'DOCDIR'      => '$(PREFIX)/share/doc',
-'PKGDIR'      => '$(PREFIX)/lib/pkgconfig',
+'PKGDIR'      => '$(LIBDIR)/pkgconfig',
 
 'GMP_PREFIX'  => '$(DEF_PREFIX)',
 'GMP_INCDIR'  => '$(GMP_PREFIX)/include',
