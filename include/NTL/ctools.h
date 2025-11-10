@@ -74,20 +74,24 @@
 
 #elif (NTL_BITS_PER_LONG == 64 && defined(__GNUC__))
 
+#define NTL_LL_TYPE __int128_t
 #define NTL_ULL_TYPE __uint128_t 
 
 #elif (NTL_BITS_PER_LONG == 32 && (defined(_MSC_VER) || defined(__BORLANDC__)))
 
+#define NTL_LL_TYPE __int64
 #define NTL_ULL_TYPE unsigned __int64
 
 #elif (NTL_BITS_PER_LONG == 64 && (defined(_MSC_VER) || defined(__BORLANDC__)))
 
+#define NTL_LL_TYPE __int64
 #define NTL_ULL_TYPE unsigned __int128
 
 #endif
 
 #if (!defined(NTL_ULL_TYPE))
 
+#define NTL_LL_TYPE  long long
 #define NTL_ULL_TYPE unsigned long long
 
 #endif
@@ -95,14 +99,17 @@
 
 #ifdef NTL_HAVE_LL_TYPE
 
+typedef NTL_LL_TYPE _ntl_longlong;
 typedef NTL_ULL_TYPE _ntl_ulonglong;
 // typenames are more convenient than macros
 
 #else
 
 #undef NTL_ULL_TYPE
+#undef NTL_LL_TYPE
 // prevent any use of these macros
 
+class _ntl_longlong { private: _ntl_longlong() { } };
 class _ntl_ulonglong { private: _ntl_ulonglong() { } };
 // cannot create variables of these types
 

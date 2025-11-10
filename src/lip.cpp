@@ -113,6 +113,17 @@ ABS(long x)
       return _ntl_limb_t(x);
 }
 
+#ifdef NTL_HAVE_LL_TYPE
+static inline _ntl_longlong
+ABS(_ntl_longlong x)
+{
+   if (x < 0)
+      return -_ntl_longlong(x); // careful !
+   else
+      return _ntl_longlong(x);
+}
+#endif
+
 static inline long
 XOR(long a, long b)
 {
@@ -2178,17 +2189,11 @@ void _ntl_guintoz(unsigned long d, _ntl_gbigint *aa)
 
 #endif
 
-
-
 long _ntl_gtoint(_ntl_gbigint a)
 {
    unsigned long res = _ntl_gtouint(a);
    return cast_signed(res);
 }
-
-
-
-
 
 #if (NTL_ZZ_NBITS >= NTL_BITS_PER_LONG)
 
@@ -2229,6 +2234,135 @@ unsigned long _ntl_gtouint(_ntl_gbigint a)
 }
 
 #endif
+
+#ifdef NTL_HAVE_LL_TYPE
+#if (NTL_ZZ_NBITS >= (NTL_BITS_PER_LONG * 2))
+// Unlikely, but it's the simple case, so.
+void _ntl_gdintoz(NTL_LL_TYPE d, _ntl_gbigint *aa)
+{
+   _ntl_gbigint a = *aa;
+
+   if (d == 0) {
+      if (a) SIZE(a) = 0;
+   }
+   else {
+      if (!a) {
+         _ntl_gsetlength(&a, 1);
+         *aa = a;
+      }
+   
+      SIZE(a) = d < 0 ? -1 : 1;
+      DATA(a)[0] = ABS(d);
+   }
+}
+
+#else
+
+void _ntl_gdintoz(NTL_LL_TYPE d, _ntl_gbigint *aa)
+{
+   long sa, i;
+   NTL_LL_TYPE d1;
+   // Keeping the assumption NTL_BITS_PER_LIMB_T >= BITS_PER_LONG,
+   // we split something the size of BITS_PER_LONG*2 into two limbs
+   _ntl_limb_t d1l, d1h, d2;
+
+   _ntl_gbigint a = *aa;
+
+   if (d == 0) {
+      if (a) SIZE(a) = 0;
+      return;
+   }
+
+   d1 = ABS(d);
+   d1l = d1 & NTL_LIMB_MASK;
+   d1h = (d1 >> NTL_BITS_PER_LIMB_T) & NTL_LIMB_MASK;
+
+   sa = 0;
+   d2 = d1h;
+   do {
+      d2 >>= NTL_ZZ_NBITS;
+      sa++;
+   }
+   while (d2);
+   d2 = d1l;
+   do {
+      d2 >>= NTL_ZZ_NBITS;
+      sa++;
+   }
+   while (d2);
+
+   if (MustAlloc(a, sa)) {
+      _ntl_gsetlength(&a, sa);
+      *aa = a;
+   }
+ 
+   _ntl_limb_t *adata = DATA(a);
+
+   // This is an abomination. I'm sorry.
+   for (i = 0; i < sa && d1h; i++) {
+      adata[i] = CLIP(d1h);
+      d1h >>= NTL_ZZ_NBITS;
+   }
+   for (; i < sa; i++) {
+      adata[i] = CLIP(d1l);
+      d1l >>= NTL_ZZ_NBITS;
+   }
+
+   if (d < 0) sa = -sa;
+   SIZE(a) = sa;
+}
+#endif
+// (NTL_ZZ_NBITS >= (NTL_BITS_PER_LONG * 2))
+
+// And vice versa for _ntl_gduintoz. I think it's just the ABS that's different?
+
+NTL_LL_TYPE _ntl_gtodint(_ntl_gbigint a)
+{
+   NTL_ULL_TYPE res = _ntl_gtoudint(a);
+   return res; // FIXME: cast_signed, probably not that urgent.
+}
+
+#if (NTL_ZZ_NBITS >= (NTL_BITS_PER_LONG * 2))
+// Still unlikely.
+NTL_ULL_TYPE _ntl_gtoudint(_ntl_gbigint a)
+{
+   if (ZEROP(a)) 
+      return 0;
+
+   if (SIZE(a) > 0) 
+      return DATA(a)[0];
+
+   return -DATA(a)[0];
+}
+
+#else
+
+NTL_ULL_TYPE _ntl_gtoudint(_ntl_gbigint a)
+{
+   if (ZEROP(a))
+      return 0;
+
+   long sa, aneg;
+   _ntl_limb_t *adata;
+   GET_SIZE_NEG(sa, aneg, a);
+   adata = DATA(a);
+
+   NTL_ULL_TYPE d = adata[0];
+   long bits = NTL_ZZ_NBITS;
+   long i = 1;
+   while (bits < (NTL_BITS_PER_LONG * 2) && i < sa) {
+      d |= adata[i] << bits; 
+      bits += NTL_ZZ_NBITS; 
+      i++;
+   }
+
+   if (aneg) d = -d;
+   return d;
+}
+
+#endif
+#endif
+// defined(NTL_HAVE_LL_TYPE)
 
 
 

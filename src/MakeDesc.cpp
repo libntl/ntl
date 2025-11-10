@@ -770,7 +770,7 @@ const char *yn_vec[2] = { "no", "yes" };
 
 int main()
 {
-   long bpl, bpi, bpt, rs_arith, nbits, wnbits;
+   long bpl, bpll, bpi, bpt, rs_arith, nbits, wnbits;
    long nb_bpl;
    long dp, dr;
    long fma_detected;
@@ -815,6 +815,13 @@ int main()
       nb_bpl++;
    }
 
+
+   /*
+    * compute bpl = bits per long long (not the same as NPL_ULL_TYPE)
+    * FIXME: find out why other code uses a loop to count bits
+    */
+
+   bpll = sizeof(long long) * CHAR_BIT;
 
 
    /*
@@ -1114,6 +1121,7 @@ int main()
    fprintf(stderr, "\n*** GOOD NEWS: compatible machine.\n");
    fprintf(stderr, "summary of machine characteristics:\n");
    fprintf(stderr, "bits per long = %ld\n", bpl);
+   fprintf(stderr, "bits per long long = %ld\n", bpll);
    fprintf(stderr, "bits per int = %ld\n", bpi);
    fprintf(stderr, "bits per size_t = %ld\n", bpt);
    fprintf(stderr, "arith right shift = %s\n", yn_vec[rs_arith]);
@@ -1202,6 +1210,7 @@ int main()
    fprintf(f, "#ifndef NTL_mach_desc__H\n");
    fprintf(f, "#define NTL_mach_desc__H\n\n\n");
    fprintf(f, "#define NTL_BITS_PER_LONG (%ld)\n", bpl);
+   fprintf(f, "#define NTL_BITS_PER_LONG_LONG (%ld)\n", bpll);
    fprintf(f, "#define NTL_NUMBITS_BPL (%ld)\n", nb_bpl);
    fprintf(f, "#define NTL_MAX_LONG (%ldL)\n", ((long) ((1UL<<(bpl-1))-1UL)));
    fprintf(f, "#define NTL_MAX_INT (%ld)\n", ((long) ((1UL<<(bpi-1))-1UL)));
