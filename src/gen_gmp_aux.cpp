@@ -117,7 +117,7 @@ int main()
             __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
             __GNU_MP_VERSION_PATCHLEVEL);
    fprintf(stderr, "GMP version check (%s/%s)\n", buffer, gmp_version);
-   if (strcmp(buffer, gmp_version)) {
+   if (strcmp(buffer, gmp_version) < 0) {
       if (__GNU_MP_VERSION_PATCHLEVEL != 0)
          bad_version = true;
       else {
