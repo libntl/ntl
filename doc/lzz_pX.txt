@@ -416,8 +416,9 @@ It is required that n >= 0, otherwise an error is raised.
 
 \**************************************************************************/
 
-void trunc(zz_pX& x, const zz_pX& a, long n); // x = a % X^n
+void trunc(zz_pX& x, const zz_pX& a, long n);
 zz_pX trunc(const zz_pX& a, long n); 
+// x = a % X^n
 
 void MulTrunc(zz_pX& x, const zz_pX& a, const zz_pX& b, long n);
 zz_pX MulTrunc(const zz_pX& a, const zz_pX& b, long n);
@@ -430,6 +431,10 @@ zz_pX SqrTrunc(const zz_pX& a, long n);
 void InvTrunc(zz_pX& x, const zz_pX& a, long n);
 zz_pX InvTrunc(const zz_pX& a, long n);
 // computes x = a^{-1} % X^n.  Must have ConstTerm(a) invertible.
+
+void ExpTrunc(zz_pX& x, const zz_pX& a, long n);
+zz_pX ExpTrunc(const zz_pX& a, long n)
+// x = exp(a) % X^n
 
 /**************************************************************************\
 
@@ -855,11 +860,11 @@ void MinPolyMod(zz_pX& h, const zz_pX& g, const zz_pXModulus& F);
 zz_pX MinPolyMod(const zz_pX& g, const zz_pXModulus& F);
 // same as above, but guarantees that result is correct
 
-void IrredPoly(zz_pX& h, const zz_pX& g, const zz_pXModulus& F, long m);
-zz_pX IrredPoly(const zz_pX& g, const zz_pXModulus& F, long m);
+void IrredPolyMod(zz_pX& h, const zz_pX& g, const zz_pXModulus& F, long m);
+zz_pX IrredPolyMod(const zz_pX& g, const zz_pXModulus& F, long m);
 
-void IrredPoly(zz_pX& h, const zz_pX& g, const zz_pXModulus& F);
-zz_pX IrredPoly(const zz_pX& g, const zz_pXModulus& F);
+void IrredPolyMod(zz_pX& h, const zz_pX& g, const zz_pXModulus& F);
+zz_pX IrredPolyMod(const zz_pX& g, const zz_pXModulus& F);
 
 // same as above, but assumes that f is irreducible, or at least that
 // the minimal poly of g is itself irreducible.  The algorithm is
@@ -903,10 +908,10 @@ zz_pX resultant(zz_p& x, const zz_pX& a, const zz_pX& b);
 
 void CharPolyMod(zz_pX& g, const zz_pX& a, const zz_pX& f);
 zz_pX CharPolyMod(const zz_pX& a, const zz_pX& f);
-// g = charcteristic polynomial of (a mod f); 0 < deg(f), deg(g) <
-// deg(f).  This routine works for arbitrary f.  For irreducible f,
-// is it faster to use IrredPolyMod, and then exponentiate as
-// necessary, since in this case the characterstic polynomial
+// g = characteristic polynomial of (a mod f); 0 < deg(f), deg(g) < deg(f).
+// This routine works for arbitrary f.  For irreducible f,
+// it is often faster to use IrredPolyMod() and then exponentiate
+// as necessary, since in this case the characteristic polynomial
 // is a power of the minimal polynomial.
 
 
