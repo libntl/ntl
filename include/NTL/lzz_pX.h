@@ -553,6 +553,9 @@ inline zz_pX power(const zz_pX& a, long e)
    { zz_pX x; power(x, a, e); NTL_OPT_RETURN(zz_pX, x); }
 
 
+void ExpTrunc(zz_pX& x, const zz_pX& a, long n);
+inline zz_pX ExpTrunc(const zz_pX& a, long n)
+   { zz_pX x; ExpTrunc(x, a, n); NTL_OPT_RETURN(zz_pX, x); }
 
 
 

@@ -426,8 +426,9 @@ All routines require n >= 0, otherwise an error is raised.
 
 \**************************************************************************/
 
-void trunc(ZZ_pX& x, const ZZ_pX& a, long n); // x = a % X^n
+void trunc(ZZ_pX& x, const ZZ_pX& a, long n);
 ZZ_pX trunc(const ZZ_pX& a, long n); 
+// x = a % X^n
 
 void MulTrunc(ZZ_pX& x, const ZZ_pX& a, const ZZ_pX& b, long n);
 ZZ_pX MulTrunc(const ZZ_pX& a, const ZZ_pX& b, long n);
@@ -439,7 +440,11 @@ ZZ_pX SqrTrunc(const ZZ_pX& a, long n);
 
 void InvTrunc(ZZ_pX& x, const ZZ_pX& a, long n);
 ZZ_pX InvTrunc(const ZZ_pX& a, long n);
-// computes x = a^{-1} % X^m.  Must have ConstTerm(a) invertible.
+// computes x = a^{-1} % X^n.  Must have ConstTerm(a) invertible.
+
+void ExpTrunc(ZZ_pX& x, const ZZ_pX& a, long n);
+ZZ_pX ExpTrunc(const ZZ_pX& a, long n);
+// x = exp(a) % X^n
 
 /**************************************************************************\
 
@@ -911,11 +916,11 @@ ZZ_p resultant(const ZZ_pX& a, const ZZ_pX& b);
 
 void CharPolyMod(ZZ_pX& g, const ZZ_pX& a, const ZZ_pX& f);
 ZZ_pX CharPolyMod(const ZZ_pX& a, const ZZ_pX& f);
-// g = charcteristic polynomial of (a mod f); 0 < deg(f), deg(g) <
-// deg(f);  this routine works for arbitrary f;  if f is irreducible,
-// it is faster to use the IrredPolyMod routine, and then exponentiate
-// if necessary (since in this case the CharPoly is just a power of
-// the IrredPoly).
+// g = characteristic polynomial of (a mod f); 0 < deg(f), deg(g) < deg(f).
+// This routine works for arbitrary f.  For irreducible f,
+// it is often faster to use IrredPolyMod() and then exponentiate
+// as necessary, since in this case the characteristic polynomial
+// is a power of the minimal polynomial.
 
 
 /**************************************************************************\
