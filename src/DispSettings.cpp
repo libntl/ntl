@@ -68,6 +68,11 @@ int main()
    cout << "NTL_GF2X_LIB\n";
 #endif
 
+#ifdef NTL_SIMDE_LIB
+   cout << "NTL_SIMDE_LIB\n";
+#endif
+
+
 #ifdef NTL_UNSIGNED_LONG_LONG_TYPE
    cout << "NTL_UNSIGNED_LONG_LONG_TYPE: ";
    cout << make_string(NTL_UNSIGNED_LONG_LONG_TYPE) << "\n";

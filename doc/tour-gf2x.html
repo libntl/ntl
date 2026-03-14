@@ -13,140 +13,130 @@ A Tour of NTL: Using NTL with the gf2x library  </title>
 
 <h1> 
 <p align=center>
-A Tour of NTL: Using NTL with the <tt>GF2X</tt> library
+A Tour of NTL: Using NTL with the GF2X library
 </p>
 </h1>
 
 <p> <hr> <p>
 
-<tt>gf2x</tt> is a library for fast multiplication 
+GF2X is a library for fast multiplication 
 of polynomials over <i>GF(2)</i>.
-The <tt>gf2x</tt> library was developed by Emmanuel Thom&eacute;,
+The GF2X library was developed by Emmanuel Thom&eacute;,
 Paul Zimmermmann, Pierrick Gaudry, and Richard Brent.
-You can get more information about it, as well as the latest version
-from <a href="http://gforge.inria.fr/projects/gf2x/">here.</a>
 
 <p>
 
 Unlike NTL, which only imlements a version of Karatsuba multiplication,
-<tt>gf2x</tt> implements other algorithms that are faster
+GF2X implements other algorithms that are faster
 for very large degree polynomials.
-If you use NTL if the <tt>gf2x</tt> library,
+If you use NTL if the GF2X library,
 then multiplication, division, GCD, and minimum polynomal
 calculations for the <a href="GF2X.cpp.html">GF2X</a> class will 
 be faster for large degree polymials.
 
 <p>
-Note: you will need version 1.2 or later of <tt>gf2x</tt>
-for a thread-safe build of NTL.
+For example,
+based on benchmarks on an Intel Xeon Platinum 8175M (which is 
+the server configuration of the Skylake microarchitecture),
+compared to NTL's default implementation,
+the GF2X library is 1.4x faster at multiplying polynomials
+of degree 1,000 over <i>GF(2)</i>, 
+and 2.1x faster at multiplying polynomials of degree 1,000,000.
+
+
+<p>
+<p>
+<b>Note:</b> GF2X is thread safe, so you should feel free to use it
+in a thread-safe build of NTL.
+However, it is 
+<i>not</i> entirely exception friendly (it may
+abort a running program, but only in some very extreme and
+unusal circumstances).
 
 
 
 
 <p>
 <h2>
-Downloading and building <tt>gf2x</tt>
+Downloading and building GF2X
 </h2>
 <p>
 
-Download <tt>gf2x</tt> from <a href="http://gforge.inria.fr/projects/gf2x/">here.</a>
-You will get a file <tt>gf2x-XXX.tar.gz</tt>.
+Download GF2X from <a href="https://gitlab.inria.fr/gf2x/gf2x">here.</a>
+This is a gitlab page that allows you to clone a git repository.
+If you do not want to use git, you
+you can also just download
+<tt>gf2x-XXX.tar.gz</tt> 
+(both options are accessible through the "code" tab on that page).
 <p>
-Now do the following:
+Assuming you have downloaded  <tt>gf2x-XXX.tar.gz</tt>, 
+do the following:
 <pre>
-   % gunzip gf2x-XXX.tar.gz
-   % tar xf gf2x-XXX.tar
+   % tar -xf gf2x-XXX.tar
    % cd gf2x-XXX
-   % ./configure --prefix=$HOME/sw
+   % autoreconf -i
+   % ./configure --prefix=$HOME/.local
    % make
    % make check
    % make install
 </pre>
-This will build, test, and install <tt>gf2x</tt> in <tt>$HOME/sw</tt>.
-Of course, change $HOME/sw to whatever you want (the default is 
-<tt>/usr/local</tt>).
-You will find the <tt>gf2x</tt> header files in <tt>$HOME/sw/include</tt> 
-and the compiled binaries in <tt>$HOME/sw/lib</tt>.
+Note the line "<tt>autoreconf -i</tt>". 
+This is needed because GF2X is distributed without a configure script.
+Rather, the configure script has to be built using <tt>autoreconf</tt>,
+which is a part of the GNU autotools suite.
+Depending on your system, you may have to install GNU autotools
+before you can build GF2X.
+<p>
+This will build, test, and install GF2X in <tt>$HOME/.local</tt>.
+Of course, change <tt>$HOME/.local</tt> to whatever you want.
+You will find the GF2X header files in <tt>$HOME/.local/include</tt> 
+and the compiled binaries in <tt>$HOME/.local/lib</tt>.
 
 <p>
-You can also supply the option
+By default, this is will install both a static and shared library.
+You can supply the option
 <tt>--disable-shared</tt> to the <tt>configure</tt> script,
 if you only want static libraries.
-However, if you ultimately want to build NTL as a shared
-library, then you must also build <tt>gf2x</tt> as a shared library.
-
-<p>
-<p>
-You must ensure that NTL and <tt>gf2x</tt> have the same 
-<a href="tour-unix.html#abi">ABI</a>.
-<tt>gf2x</tt>'s configuration script might need some
-help to select the right one.
-For example, you may have to pass
-<pre>
-   ABI=64 CFLAGS="-m64 -O2"
-</pre>
-to <tt>gf2x</tt>'s configure script to force a 64-bit ABI.
-
-
-
+If you do this, you may also consider passing the <tt>--with-pic</tt>
+option if you want another shared library to be able to call functions
+in GF2X. 
 
 
 <p>
-<h2>
-Building and using NTL with <tt>gf2x</tt>
-</h2>
-<p>
 
-When building NTL with <tt>gf2x</tt>, you have to tell NTL that you want to
+When building NTL with GF2X, you have to tell NTL that you want to
 use it.
-The easiest way to do this is by passing the argument 
-<tt>NTL_GF2X_LIB=on</tt> to the NTL configuration script
+To do this,
+pass the argument 
+<tt>NTL_GF2X_LIB=on</tt> to the NTL configure script
 when you are <a href="tour-unix.html">installing NTL</a>.
-Assuming you installed <tt>gf2x</tt> in <tt>$HOME/sw</tt> as above,
-and you also want to install NTL in <tt>$HOME/sw</tt>,
-you execute:
-<pre>
-   % ./configure PREFIX=$HOME/sw NTL_GF2X_LIB=on  GF2X_PREFIX=$HOME/sw
-</pre>
-You can write this more simply as 
-<pre>
-   % ./configure DEF_PREFIX=$HOME/sw NTL_GF2X_LIB=on 
-</pre>
-Here, <tt>DEF_PREFIX</tt> is a variable that is used
-to specify the location of all software,
-and it defaults to <tt>/usr/local</tt>.
 
 
 <p>
-If you installed <tt>gf2x</tt> in <tt>/usr/local</tt> (or some other
-standard system directory where your compiler will look by default)
-then simply
+You need to make sure that the NTL configure script knows
+where to find GF2X when you are builing NTL.
+You can do this by passing <tt>GF2X_PREFIX=$HOME/.local</tt>
+or <tt>DEF_PREFIX=$HOME/.local</tt> to NTL's configure script.
+<p>
+For example, if NTL, GMP, and GF2X are all being installed
+in <tt>$HOME/.local</tt>, invoke NTL's configure script like this:
 <pre>
-   % ./configure PREFIX=$HOME/sw NTL_GF2X_LIB=on
+   % ./configure DEF_PREFIX=$HOME/.local NTL_GF2X_LIB=on 
 </pre>
-does the job.
-Moreover, if NTL is also to be installed in <tt>/usr/local</tt>,
-then
-<pre>
-   % ./configure NTL_GF2X_LIB=on
-</pre>
-does the job.
-
 
 <p>
-When compiling programs that use NTL with <tt>gf2x</tt>,
-you need to link with the <tt>gf2x</tt> library.
-If <tt>gf2x</tt> is installed as above in 
-<tt>$HOME/sw</tt>, rather than in a standard system directory,
- this just means adding
-<tt>-L$HOME/sw/lib -lgf2x</tt> to the compilation command.
-If you installed <tt>gf2x</tt> in a standard system directory,
-then just <tt>-lgf2x</tt> does the job.
-Note that <tt>-lgf2x</tt> must come <i>after</i> <tt>-lntl</tt>
-on the command line.
-Finally, if NTL and <tt>gf2x</tt> are installed as
-shared libraries, then you don't even need <tt>-lgf2x</tt>.
+Also when you link and run a program that uses NTL,
+you have to make sure that the GF2X library is found 
+at link time and, depending on the system, possibly at run time.
+The best way to see how to do this is to look at the
+file <tt>USER_MAKEFILE.txt</tt> installed in NTL's include
+directory &mdash; again, see <a href="tour-unix.html">here</a>
+for details.
 
+<p>
+When using NTL with GF2X, 
+as a user of NTL, you do not need to
+know or understand anything about the the GF2X library.
 
 
 

@@ -2,7 +2,6 @@
 #include <NTL/GF2X.h>
 #include <NTL/vec_long.h>
 
-#include <cstdio>
 
 #if (defined(NTL_WIZARD_HACK) && defined(NTL_GF2X_LIB))
 #undef NTL_GF2X_LIB
@@ -12,27 +11,19 @@
 #include <gf2x.h>
 #endif
 
-
 #ifdef NTL_HAVE_PCLMUL
-
-#include <wmmintrin.h>
 
 #define NTL_INLINE inline
 
-static inline void
-pclmul_mul1 (unsigned long *c, unsigned long a, unsigned long b)
-{
-   __m128i aa = _mm_setr_epi64( _mm_cvtsi64_m64(a), _mm_cvtsi64_m64(0));
-   __m128i bb = _mm_setr_epi64( _mm_cvtsi64_m64(b), _mm_cvtsi64_m64(0));
-   _mm_storeu_si128((__m128i*)c, _mm_clmulepi64_si128(aa, bb, 0));
-}
+#include <NTL/simde_pclmul.h>
 
 #else
-
 
 #define NTL_INLINE
 
 #endif
+
+
 
 NTL_START_IMPL
 

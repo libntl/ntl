@@ -110,17 +110,19 @@ int main()
    if (GMP_LIMB_BITS != mp_bits_per_limb) 
       Error("GMP_LIMB_BITS != mp_bits_per_limb: inconsistency between gmp.h and libgmp");
 
-   // check that vesrion numbers match as a consistency check
+   // check that version numbers match as a consistency check
    // This is adapted from MPFR's configure script
    bool bad_version = false;
-   sprintf(buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
-           __GNU_MP_VERSION_PATCHLEVEL);
+   snprintf(buffer, sizeof(buffer), "%d.%d.%d", 
+            __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+            __GNU_MP_VERSION_PATCHLEVEL);
    fprintf(stderr, "GMP version check (%s/%s)\n", buffer, gmp_version);
    if (strcmp(buffer, gmp_version)) {
       if (__GNU_MP_VERSION_PATCHLEVEL != 0)
          bad_version = true;
       else {
-         sprintf(buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+         snprintf(buffer, sizeof(buffer), "%d.%d", 
+                  __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
          if (strcmp(buffer, gmp_version)) bad_version = true;
       }
    }

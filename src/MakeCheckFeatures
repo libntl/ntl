@@ -9,8 +9,8 @@ do
    echo "" > "../include/NTL/HAVE_$f.h"
 
    sh RemoveProg CheckFeatures
-   echo $2 Check$f.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
-   $2 Check$f.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
+   echo $2 -DNTL_FCHECK Check$f.cpp ctools.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
+   $2 -DNTL_FCHECK Check$f.cpp ctools.cpp -o CheckFeatures $3 >> "CheckFeatures.log" 2>&1
 
    if test -f CheckFeatures
    then

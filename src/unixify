@@ -33,5 +33,5 @@ do
    cp Check$f.cpp unix/src/
 done
 
-cp -R libtool-seed unix/src
-cp -R libtool-origin unix/src
+cp -RP libtool-seed unix/src
+cp -RP libtool-origin unix/src

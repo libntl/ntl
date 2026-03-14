@@ -106,13 +106,11 @@ to be defined.  Of course,  to unset a flag, just replace the
  * It requires that the GMP package (version >= 3.1) has already been
  * installed.  You will also have to set the variables GMP_OPT_INCDIR,
  * GMP_OPT_LIBDIR, GMP_OPT_LIB in the makefile (these are set automatically
- * by the confiuration script when you pass the flag NTL_GMP_LIP=on
+ * by the configuration script when you pass the flag NTL_GMP_LIP=on
  * to that script.
  *
  * Beware that setting this flag can break some very old NTL codes.
  *
- * You may also have to edit the makefile to modify the variables
- * GMP_OPT_INCDIR, GMP_OPT_LIBDIR, and GMP_OPT_LIB.
  */
 
 #endif
@@ -127,11 +125,9 @@ to be defined.  Of course,  to unset a flag, just replace the
  * when working with polynomials of huge degree.
  * You will also have to set the variables GF2X_OPT_INCDIR,
  * GF2X_OPT_LIBDIR, GF2X_OPT_LIB in the makefile (these are set automatically
- * by the confiuration script when you pass the flag NTL_GF2X_LIB=on
+ * by the configuration script when you pass the flag NTL_GF2X_LIB=on
  * to that script.
  *
- * You may also have to edit the makefile to modify the variables
- * GF2X_OPT_INCDIR, GF2X_OPT_LIBDIR, and GF2X_OPT_LIB.
  */
 
 #endif

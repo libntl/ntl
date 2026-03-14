@@ -89,6 +89,7 @@ cp ../include/NTL/vec_GF2.h small/include/NTL
 cp ../include/NTL/GF2X.h small/include/NTL
 cp ../include/NTL/PackageInfo.h small/include/NTL
 cp ../include/NTL/linux_s390x.h small/include/NTL
+cp ../include/NTL/simde_pclmul.h small/include/NTL
 
 cp cfile small/src
 cp WizardAux small/src
@@ -97,8 +98,8 @@ cp makefile small/src
 
 
 cd small/src
-echo "*** perl WizardAux $2"
-perl WizardAux "$2"
+echo "*** perl WizardAux $2  LCOMP='' LCOMPX='' "
+perl WizardAux "$2 LCOMP='' LCOMPX='' "
 
 cd ../..
 

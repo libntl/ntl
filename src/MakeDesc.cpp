@@ -47,8 +47,6 @@ void touch_size_t(size_t* x);
 void touch_double(double* x);
 void touch_ldouble(long double* x);
 
-double sum_double(double *x, long n);
-
 double fma_test(double a, double b, double c);
 double reassoc_test(double a, double b, double c, double d);
 
@@ -98,13 +96,10 @@ long DoubleRounding(long dp)
 {
    double a = power2(dp-1) + 1;
    double b = (power2(dp)-1)/power2(dp+1);
+   touch_double(&a);
+   touch_double(&b);
 
-   double vec[2];
-   vec[0] = a;
-   vec[1] = b;
-
-   double sum = sum_double(vec, 2);
-
+   double sum = a+b;
    touch_double(&sum);
 
    if (sum != a)

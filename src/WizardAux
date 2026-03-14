@@ -126,16 +126,19 @@ foreach $aflag1 ("default", "NTL_FFT_LAZYMUL") {
          $skipit = 0;
 
          if ($Config{"NTL_SPMM_ULL"} == 1 && $Config{"NTL_HAVE_LL_TYPE"} == 0) {
+            print "*** skip1\n";
             $skipit = 1;
          }
 
          if ($Config{"NTL_FFT_LAZYMUL"} == 1 && 
              !($Config{"NTL_LONGLONG_SP_MULMOD"} == 1 || $Config{"NTL_SPMM_ULL"} == 1)) {
 
+            print "*** skip2\n";
             $skipit = 1;
          }
 
          if ($Config{"NTL_LONGLONG_SP_MULMOD"} == 1 && $Config{"NTL_SPMM_ULL"} == 1) {
+            print "*** skip3\n";
             $skipit = 1;
          }
 

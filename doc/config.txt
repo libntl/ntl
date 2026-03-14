@@ -1,56 +1,21 @@
 
 usage: ./configure [ variable=value ]...
 
-This configure script generates the file 'makefile' and the file
-'../include/NTL/config.h', based upon the values assigned to the
-variables on the command line.
+Generates the following files: 
+- makefile: used to build (run "make") and install (run "make install")
+- ../include/NTL/config.h: used by NTL source code
+- ../include/NTL/CONFIG_LOG.txt: summary of the configuration setting
+- ../include/NTL/USER_MAKEFILE.txt: makefile that can be used for simple 
+     applications or modified for other applications.  It's useful to look 
+     at this makefile to see what compiler flags are used and why.
+- ../lib/pkgconfig/ntl.pc: a pkg-config file that can be useful for integrating
+     NTL into build systems like Cmake/Meson/
 
 
-########### Here are the most important variables, and their default values.
+Each configuration variable FOO is shown with its defailt value bar as FOO=bar.
+For on/off switches, the only possible values are 'on' and 'off'
 
-CXX=g++              # The C++ compiler
-
-CXXFLAGS=-g -O2      # C++ complilation flags
-
-NATIVE=on            # compiles code targeted to current hardware
-
-TUNE=generic         # performance-tuning switch  
-(or x86 or linux-s390x) 
-
-DEF_PREFIX=/usr/local# Default software directory
-
-PREFIX=$(DEF_PREFIX) # Directory in which to install NTL library components
-SHARED=off           # Generate a shared library (as well as static)
-
-NTL_THREADS=on       # compile in thread-safe mode
-NTL_THREAD_BOOST=on  # compile with thread boosting enabled
-NTL_EXCEPTIONS=off   # compile in exception-safe mode
-
-NTL_GMP_LIP=on       # Switch to enable the use of GMP as primary 
-                     #   long integer package
-
-GMP_PREFIX=$(DEF_PREFIX) # Directory in which GMP components are installed
-
-
-NTL_GF2X_LIB=off     # Switch to enable the use of the gf2x package
-                     #   for faster arithmetic over GF(2)[X]
-
-GF2X_PREFIX=$(DEF_PREFIX) # Directory in which gf2x components are installed
-
-NTL_STD_CXX11=on     # Build assuming C++11 features
-
-NTL_SAFE_VECTORS=on  # build in "safe vector" mode 
-
-NTL_ENABLE_AVX_FFT=off # implement the small-prime FFT using AVX
-                       # instructions...this is experimental at 
-                       # moment, and may lead to worse performance
-
-NTL_AVOID_AVX512=off # avoid using 512-bit AVX registers
-
-NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
-
-
-########## Here are more detailed description of these variables.
+################### The most important variables ###################
 
 ########## Basic compilation variables:
 
@@ -59,108 +24,243 @@ CXX=g++
 # A C++ compiler, e.g., g++, CC, xlC
 
 
-
 CXXFLAGS=-g -O2
 
-# Flags for the C++ compiler. 
-# It is highly recommend to avoid things like -O3 and -Ofast.
-# These may yield incorrect code.
+# Flags for the C++ compiler 
+
+# It is highly recommend to avoid things like -O3 and -Ofast.  These may yield
+# incorrect code.
+
+NATIVE=on   # on/off switch
+
+# Turning this on will pass -march=native through to the compiler via
+# CXXAUTOFLAGS (see below).  This is the easiest way to exploit the hardware
+# capabilities of your machine to their fullest potential. 
+
+# Note that on Arm-based machines, instead of -march-native, the flag
+# -mcpu=native is used. For weird historical reasons, one has to use
+# -mcpu-native to get the desired behavior (although new releases of gcc and
+# clang may start to treat -march=native the same as -mcpu-native).
+
+# Note that if CXXFLAGS contains a flag -march, -mcpu, or -mtune flag, then
+# NATIVE will be turned off.
+
+######### Auxilliary software packages
+
+#### GMP 
+
+NTL_GMP_LIP=on   # on/off switch
+
+# By default, NTL will use GMP, the GNU Multi-Precision package.
+# Turning this off will eliminate the dependency on GMP, but
+# is not recommended as it will will lead to significantly slower code.
+
+# If NTL_GMP_LIP=on, the prefix GMP_PREFIX may need to be set (see below).
 
 
-NATIVE=on
+#### GF2X 
 
-# Flag to target code to current hardware.  Setting this flag  will pass
-# -march=native through to the compiler via CXXAUTOFLAGS (if possible).  This
-# is the easiest way to exploit the hardware capabilities of your machine to
-# their fullest potential.  Note that if CXXFLAGS contains an '-march=XXX'
-# option, then NATIVE will be turned off.
+NTL_GF2X_LIB=off   # on/off switch
+
+# Turn this on to use the GF2X library for faster arithmetic over GF(2)[X]
+# (the NTL class GF2X).
+
+# If NTL_GF2X_LIB=on, the prefix GF2X_PREFIX may need to be set (see below).
+
+
+
+########## Paths for installation and auxilliary software components
+
+SYS_PREFIX=/usr/local
+
+# A standard "system" prefix where software components can be found at compile,
+# link, and run time without any compiler flags such as -I, -L, or -Wl,-rpath
+# (and these flags *will not* be included in the generated makefile).
+
+DEF_PREFIX=$(SYS_PREFIX)
+
+# A "default" prefix where software components can be found at compile, link,
+# and run time with appropriate compiler flags (and these flags *will* be
+# included in the generated makefile). 
+
+#### installation
+
+PREFIX=$(DEF_PREFIX)
+
+# Prefix where NTL components are to be installed.  When "make install" is
+# executed, the following files are installed:
+# - header files, CONFIG_LOG.txt, USER_MAKEFILE.txt in $(INCLUDEDIR)/NTL,
+#   where INCLUDEDIR=$(PREFIX)/include 
+# - library file(s) libntl.{a,so} in $(LIBDIR), where LIBDIR=$(PREFIX)/lib
+# - documentation files in $(DOCDIR)/NTL, ehre DOCDIR=$(PREFIX)/share/doc
+# - pkg-config file ntl.pc in $(PKGDIR), where PKGDIR=$(PREFIX)/lib/pkgconfig
+# The variables INCLUDEDIR, LIBDIR, DOCDIR, PKGDIR may be overridden. 
+
+#### GMP
+
+GMP_PREFIX=$(DEF_PREFIX)
+
+# Prefix at which GMP components have been installed. Needed if NTL_GMP_LIP=on
+# and GMP components are not installed in a standard "system" prefix.
+# - header file gmp.h in $(GMP_INCDIR), where GMP_INCDIR=$(GMP_PREFIX)/include 
+# - library file(s) libgmp.{a,so} in $(GMP_LIBDIR), where
+#   GMP_LIBDIR=$(GMP_PREFIX)/lib
+# The variables GMP_INCDIR, GMP_LIBDIR may be overridden.
+
+#### GF2X
+
+GF2X_PREFIX=$(DEF_PREFIX)
+
+# Prefix at which GF2X components have been installed. Needed if
+# NTL_GF2X_LIB=on and GF2X components are not installed in a standard "system"
+# prefix.
+# - header file gf2x.h in $(GF2X_INCDIR), where
+#   GF2X_INCDIR=$(GF2X_PREFIX)/include 
+# - library file(s) libgf2x.{a,so} in $(GF2X_LIBDIR), where
+#   GF2X_LIBDIR=$(GF2X_PREFIX)/lib
+# The variables GF2X_INCDIR, GF2X_LIBDIR may be overridden.
+
+
+#### Example:
+# If you do not set DEF_PREFIX, GMP_PREFIX, or GMP_INCDIR, it will be assumed
+# that the GMP header file gmp.h is installed in $(SYS_PREFIX)/include and that
+# a -I flag is not needed to find it.  If you set DEF_PREFIX, but not
+# GMP_PREFIX or GMP_INCDIR, it will be assumed that the GMP header file gmp.h
+# is installed in $(DEF_PREFIX)/include and a -I$(DEF_PREFIX)/include will be
+# included in the generated makefile.  Similar assumptions are made for finding
+# the GMP library itself at link time (with a possible -L flag) and at run time
+# (with a possible -Wl,-rpath flag).
+
+########## Shared libraries and libtool
+
+SHARED=off   # on/off switch 
+
+# By default, only a static library is built.  Turn this on to build a shared
+# library, in addition to a static library.  If SHARED=on, the makefile will
+# use libtool to build the library.
+
+ENABLE_LIBTOOL=off   # on/off switch
+
+# Athough mainly needed to build a shared library, one can also use libtool to
+# build a static library. This can be helpful to integrate NTL into a "libtool
+# ecosystem". For example, this allows you to use libtool to build programs
+# that use NTL, which gives you convenient access to more linkage options via
+# libtool (for example, the -static-libtool-libs option could be used to ensure
+# that NTL itself, as well as all of its dependencies, are linked as static
+# libraries, even if shared libraries are also available).
+
+# If SHARED=on, then ENABLE_LIBTOOL is automatically turned on.  
+
+PREFER_PIC=off   # on/off switch
+
+# Turning on this switch will pass the option -prefer-pic to libtool diring
+# compilation, which will ensure that the code in static a static library is
+# position independent.  This can allow a static NTL library to be linked to by
+# a shared library. Note that on macOS, the compiler generates
+# position-indpendent code by default, so this is not necessary. However, on
+# Linux you will need to turn this switch on.
+
+LIBTOOL=undefined
+
+# If ENABLE_LIBTOOL=on, the makefile will use a libtool script.  By default,
+# this script is freshly built by the configure script. Note that when using
+# libtool, some modern make features (certainly available on gnu make).
+#
+# One can also define LIBTOOL to point to a pre-built libtool program.  Note
+# that on macOS, there is a program called libtool, but it cannot be used.
+# Instead, a program called glibtool is necessary, which is typically available
+# through popular package management systems.
+
+
+
+############# Rpath madness
+
+ENABLE_RPATH=undefined   # on/off switch 
+
+# You typically link a program to a library foo by passing
+# -L/path/to/foo/library -lfoo to the compiler. However, if foo is a shared
+# library, then on some Linux systems, this it not enough to ensure that the
+# library foo in /path/to/foo/library is found at runtime.  It may happen that
+# the library is not found at all, or worse, a different version of the library
+# is found rather than the one in /path/to/foo/library.
+  
+# This is especially problematic on systems where GMP has been installed as a
+# suboptimally compiled system library and you want to use an optimally
+# compiled GMP in a non-standard location. If you are not careful, you may end
+# up loading the suboptimal GMP at runtime, even though you linked to the
+# optimal GMP at link time.
+  
+# If you are on macOS, this is generally not a problem, as the runtime shared
+# library loader will look first for the library in the location specified at
+# link time.  On Linux, the safest way to make sure this happens is to link
+# your program with the additional compiler option
+# -Wl,-rpath,/path/to/foo/library.  This is actually a fairly standard option,
+# widely supported across various flavors of Unix. 
+  
+# Both during the NTL build process several test programs are run and it is
+# important to make sure NTL's dependencies are correctly linked to these
+# programs, using -Wl,-rpath if necessary.  If ENABLE_RPATH is turned on, the
+# makefile will attempt to use -Wl,-rpath as necessary.  
+  
+# If left undefined, the configure script will heuristically turn it on or off,
+# depending on your system.  However, if explicitly defined by passing an
+# argument ENABLE_RPATH={on,off} to the configure script, that choice will be
+# respected.
+
+
+################### Other variables ###################
+
+######### tuning
 
 TUNE=generic (or x86 or linux-s390x)
 
 # Switch to determine how various performance options get set
-#   auto        make runs a performance-tuning wizard 
+#   auto        make runs a performance-tuning wizard when you run make 
 #   generic     should be OK for most platforms
 #   x86         should be well suited for most x86 platforms
-#   linux-s390x should be well suited for Linux on IBM Z platforms from z15 onward
+#   linux-s390x should be well suited for Linux on IBM Z platforms 
+#               from z15 onward
+#   off         no performance options set (but they can be set individually
+#               as configuration options)
+
 # More choices may be added in the future.
 # Right now, the default is
 # - x86, if configure detects that is is running on an x86 platform,
-# - linux-s390x, if configure detects that it is running on Linux on an IBM Z platform
-#   and the compiler is either gcc or clang, and
+# - linux-s390x, if configure detects that it is running on Linux on an 
+#   IBM Z platform and the compiler is either gcc or clang, and
 # - generic, otherwise.
-
-
-########## Installation path:
-
-DEF_PREFIX=/usr/local
-
-# Default software directory
-
-PREFIX=$(DEF_PREFIX)
-
-# Set this to the directory in which you want NTL components to be installed.
-# When 'make install' is executed, the header files are copied into
-# $(PREFIX)/include/NTL, the library itself is copied to
-# $(PREFIX)/lib/libntl.a, and the documentation files are copied into
-# $(PREFIX)/share/doc/NTL.  Unless you have root permissions when running 'make
-# install', you will have to override the default PREFIX value with the name of
-# your own local directory.  If you want finer-grained control over where the
-# different library components are installed, set the variables INCLUDEDIR,
-# LIBDIR, and DOCDIR (see below).
-
-########## Shared library switch:
-
-SHARED=off
-
-# Set this to 'on' if you want to generate a shared library, in addition to a
-# static library.   Shared libraries have many advantages, but unfortunately,
-# their use is rather less portable than that of good, old-fashioned static
-# libraries.  If you set SHARED=on, then the makefile will use a libtool
-# script.  By default, the libtool script used is freshly built when you run
-# configure.  This libtool script is built using another configure sctipt.
-# Currently, you can't pass any arguments to this configure script (but you can
-# communicate with it via environment variables, as usual).  
-#
-# You can use a pre-built libtool command by setting the configuration variable
-# LIBTOOL.  You can also build a custom libtool script by running the configure
-# script in the subdirectory libtool-origin with specialized arguments.
-#
-# Note that if SHARED=on, then in addition to using the libtool
-# program, the makefile relies on features specific to GNU make.
 
 
 ########## thread safety
 
-NTL_THREADS=on
+NTL_THREADS=on   # on/off switch
 
-# Set to 'on' if you want to compile NTL in thread-safe mode.  This requires
+# Turn on if you want to compile NTL in thread-safe mode.  This requires
 # several C++11 features, including atomic types, mutexes, and thread_local
-# storage.  Your compiler may not yet support these features.  Setting this
-# flag will automatically set the NTL_STD_CXX11 flag (if neither NTL_STD_CXX11
-# or NTL_STD_CXX14 is already set). It will also pass -pthread throught to the
-# compiler via CXXAUTOFLAGS (if possible).
+# storage.  Setting this flag will automatically set the NTL_STD_CXX11 flag (if
+# neither NTL_STD_CXX11 or NTL_STD_CXX14 is already set). It will also pass
+# -pthread throught to the compiler via CXXAUTOFLAGS (if possible).
 #
 # Turning this flag off will also turn off the NTL_THREAD_BOOST flag.
 
 ########## thread boosting
 
-NTL_THREAD_BOOST=on
+NTL_THREAD_BOOST=on   # on/off switch
 
-# Set to 'on' if you want to compile NTL so that is does certain internal
-# computations using multiple threads.  
-#
-# This feature is a work in progress.  As time goes on, more NTL algorithms are
-# thread boosted.  See BasicThreadPool documentation file for more details.
+# Turn on if you want to compile NTL so that it does certain internal
+# computations using multiple threads using thread pools.  NTL implements its
+# own thread pool mechanism using standard C++ and does not rely on any other
+# libraries.  You can also use this thread pool mechanism in your own project.
+# See BasicThreadPool documentation file for more details.
 
 ########## exceptions
 
-NTL_EXCEPTIONS=off
+NTL_EXCEPTIONS=off   # on/off switch
 
-# Set to 'on' if you want to compile NTL with exceptions enabled.  This
-# requires several C++11 features, including lambdas and the new rules for
-# exception specifications.  Your compiler may not yet support these feautures.
-# Setting this flag will automatically set the NTL_STD_CXX11 flag (if neither
-# NTL_STD_CXX11 or NTL_STD_CXX14 is already set).
+# Turn on if you want to compile NTL with exceptions enabled.  This requires
+# several C++11 features, including lambdas and the new rules for exception
+# specifications.  Setting this flag will automatically set the NTL_STD_CXX11
+# flag (if neither NTL_STD_CXX11 or NTL_STD_CXX14 is already set).
 
 # With exceptions disabled, any error conditions detected by NTL (including
 # memory allocation errors) will result in an error message and a call to
@@ -171,59 +271,20 @@ NTL_EXCEPTIONS=off
 # contructors).
 
 # With exceptions enabled, most error conditions detected by NTL will result in
-# an exception being thrown.  NTL will also be compiled in a "thread safe" mode
-# that prevents memory leaks (and other problems).  In addition, some move
+# an exception being thrown.  NTL will also be compiled in an "exception safe"
+# mode that prevents memory leaks (and other problems).  In addition, some move
 # constructors and move assignment operators may not be declared "noexcept".
 
-########## GMP variables:
+########### Language standards
 
-NTL_GMP_LIP=on
-
-# Set to 'off' if you don't want to use GMP, the GNU Multi-Precision package,
-# as the primary long integer package.  This will lead to significantly slower
-# code, and is not recommended.
-
-
-GMP_PREFIX=$(DEF_PREFIX)
-
-# If GMP was installed in a standard system directory, e.g., /usr/local, then
-# do not set this variable.  Otherwise, if you want to use GMP and GMP was
-# installed in a directory <gmp_prefix>, then set GMP_PREFIX=<gmp_prefix>.
-# This works if the directory <gmp_prefix>/include contains gmp.h and
-# <gmp_prefix>/lib contains libgmp.a.  For finer-grained control, set the
-# variables GMP_INCDIR and GMP_LIBDIR instead (see below).
-
-
-########## GF2X variables:
-
-NTL_GF2X_LIB=off
-
-# Set to 'on' if you want to use the gf2x library for faster arithmetic over
-# GF(2)[X] (the NTL class GF2X).
-
-# If you set this flag, please note the following.  If you have installed gf2x
-# in a standard "system" location, this is all you have to do.  Otherwise, if
-# gf2x is built, but not installed in a standard place, you have to set the
-# variable GF2X_PREFIX.
-
-
-GF2X_PREFIX=$(DEF_PREFIX)
-
-# If gf2x was installed in a standard system directory, e.g., /usr/local, then
-# do not set this variable.  Otherwise, if you want to use gf2x and gf2x was
-# installed in a directory <gf2x_prefix>, then set GF2X_PREFIX=<gf2x_prefix>.
-# This works if the directory <gf2x_prefix>/include contains gf2x.h and
-# <gf2x_prefix>/lib contains libgf2x.a.  For finer-grained control, set the
-# variables GF2X_INCDIR and GF2X_LIBDIR instead (see below).
-
-########### Language stadards
-
-NTL_STD_CXX11=on     # Build assuming C++11 features
-NTL_STD_CXX14=off    # Build assuming C++14 features
+NTL_STD_CXX11=on   # on/off switch to build assuming C++11 features
+NTL_STD_CXX14=off  # on/off switch to build assuming C++14 features
 
 # Setting one of these may also result in passing pass either -std=c++11 or
-# -std=c++14 through to the compiler via CXXAUTOFLAGS (if it is necessary and
-# possible).
+# -std=c++14 through to the compiler via CXXAUTOFLAGS (see below).
+
+# These flags are mostly obsolete by now, as most C++ compilers nowadays are
+# running a standard of C++11 or higher by default.
 
 
 ############ Safe vector mode
@@ -240,80 +301,55 @@ NTL_SAFE_VECTORS=on  # Build in "safe vector mode"
 
 ############ AVX FFT
 
-NTL_ENABLE_AVX_FFT=off # implement the small-prime FFT using AVX
-                       # instructions...this is experimental at 
-                       # moment, and may lead to worse performance
+NTL_ENABLE_AVX_FFT=off   # on/off switch
 
-On machines with AVX2/FMA or AVX512, this will implement the small-prime FFT
-using AVX code.  This is still quite experimental, and may lead to worse
-performance.  While the FFT itself can run 2-3 times faster, this comes at the
-cost of (1) restriction to 50-bit primes (so NTL_SP_NBITS will be set to 50
-instead of 60), and (2) the CPU speed may be throttled, slowing down other
-operations.  So far, it seems that the only operations that are faster are
-arithmetic operations in zz_pX, and only for certain choices of modulus.
-Arithmetic operations in ZZ_pX, with large modulus, can run slower with AVX
-than without.
+# implement the small-prime FFT using AVX  instructions...this is experimental
+# at the  moment, and may lead to worse performance
+
+# On machines with AVX2/FMA or AVX512, this will implement the small-prime FFT
+# using AVX code.  This is still quite experimental, and may lead to worse
+# performance.  While the FFT itself can run 2-3 times faster, this comes at
+# the cost of (1) restriction to 50-bit primes (so NTL_SP_NBITS will be set to
+# 50 instead of 60), and (2) the CPU speed may be throttled, slowing down other
+# operations.  So far, it seems that the only operations that are faster are
+# arithmetic operations in zz_pX, and only for certain choices of modulus.
+# Arithmetic operations in ZZ_pX, with large modulus, can run slower with AVX
+# than without.
 
 
 ########### Avoid 512-bit AVX registers
 
-NTL_AVOID_AVX512=off # avoid using 512-bit AVX registers
+NTL_AVOID_AVX512=off   # on/off switch
 
-Even if available, this will avoid the use of 512-bit AVX registers.  This
-affects both Mat<zz_p> operations, as well as the AVX-based FFT (see above).
+# avoid using 512-bit AVX registers
+
+# Even if available, this will avoid the use of 512-bit AVX registers.  This
+# affects both Mat<zz_p> operations, as well as the AVX-based FFT (see above).
 
 
 ########### Use AES-256-CTR based pseudorandom generator
 
-NTL_RANDOM_AES256CTR=off # implement pseudorandom generator using AES-256-CTR
+NTL_RANDOM_AES256CTR=off   # on/off switch
+ 
+# implement pseudorandom generator using AES-256-CTR
 
-AES-256-CTR based pseudorandom generation may be faster than the
-default in case AES instruction set extensions are available on
-the processor and supported by the implementations.
-
-The implementation supports the following AES instruction set
-extensions if detected at build time:
-
- x86         : AES-NI
- linux-s390x : KMA
-
-Be aware of possible interoperability issues when changing
-the implementation of NTL's pseudorandom generator object.
-
-
-########### Examples:
-
-# If you are happy with all the default values:
-
-   ./configure
-
-# If your C++ compiler is called icpc:
-
-   ./configure CXX=icpc
-
-
-# If GMP was installed in a non-standard directory, say,  $HOME/sw:
-
-   ./configure GMP_PREFIX=$HOME/sw 
-
-
-# If you want to use the options -g and -O for compiling C++,
-# just execute
-
-   ./configure "CXXFLAGS=-g -O"
-
-# Note the use of quotes to keep the argument in one piece.
-
-
-# If you want to use the gf2x library:
-
-   ./configure NTL_GF2X_LIB=on
+# AES-256-CTR based pseudorandom generation may be faster than the
+# default in case AES instruction set extensions are available on
+# the processor and supported by the implementations.
+# 
+# The implementation supports the following AES instruction set
+# extensions if detected at build time:
+# 
+#  x86         : AES-NI
+#  linux-s390x : KMA
+# 
+# Be aware of possible interoperability issues when changing
+# the implementation of NTL's pseudorandom generator object.
 
 
 
-########### 
-########### A little magic
-###########
+################### A little magic ###################
+
 
 CXXAUTOFLAGS=
 
@@ -327,6 +363,9 @@ CXXAUTOFLAGS=
 # For others, your mileage may vary.  The configuration script always prints
 # out the value it chooses.  Currently, the following flags may get passed
 # through CXXAUTOFLAGS:
+#
+#   -march=native
+#   -mcpu=native       if requested explicitly via NATIVE=on
 #
 #   -std=c++11 
 #   -std=c++14         if requested explicitly via NTL_STD_CXX11=on or 
@@ -365,16 +404,17 @@ NOCONTRACT=
 
 MAKE_PROG=make
 
-# To set CXXAUTOFLAGS and NOCONTRACT, the configure script actually needs to
-# run make.  If you wish to use a non-standard make program for this purpose,
-# set this variable to point to that program.
+# The configure script actually needs to run make at various points.  If you
+# wish to use a non-standard make program for this purpose, set this variable
+# to point to that program.
 
 
 
-########### Here is a complete list of the remaining variables,
-########### with their default values.  These variables are pretty 
-########### esoteric, and you will probably never change their
-########### default values.
+################### Esoterica ###################
+
+# Here is a complete list of the remaining variables, with their default
+# values.  These variables are pretty esoteric, and you will probably never
+# change their default values.
 
 AR=ar
 ARFLAGS=ruv
@@ -382,13 +422,8 @@ RANLIB=ranlib
 LDFLAGS=
 LDLIBS=-lm
 CPPFLAGS=
-LIBTOOL=undefined
 LIBTOOL_LINK_FLAGS=
 LIBTOOL_LINK_LIBS=undefined
-
-LIBDIR=$(PREFIX)/lib
-INCLUDEDIR=$(PREFIX)/include
-DOCDIR=$(PREFIX)/share/doc
 
 NTL_TLS_HACK=on
 
@@ -421,16 +456,8 @@ NTL_GF2X_NOINLINE=off
 NTL_GF2X_ALTCODE=off
 NTL_GF2X_ALTCODE1=off
 
-GMP_INCDIR=$(GMP_PREFIX)/include
-GMP_LIBDIR=$(GMP_PREFIX)/lib
 
-GF2X_INCDIR=$(GF2X_PREFIX)/include
-GF2X_LIBDIR=$(GF2X_PREFIX)/lib
-
-
-
-
-########### Here is a more detailed description of these variables.
+# Here is a more detailed description of these variables.
 
 ########### Further compilation variables:
 
@@ -446,11 +473,9 @@ ARFLAGS=ruv
 # arguments for AR
 
 
-
 RANLIB=ranlib
 
 # set to echo if you want to disable it completely
-
 
 
 LDFLAGS=
@@ -458,34 +483,29 @@ LDFLAGS=
 # arguments for linker for C++ programs
 
 
-
-
 LDLIBS=-lm
 
 # libraries for linking C++ programs
-
 
 
 CPPFLAGS=
 
 # arguments for the C preprocessor
 
-LIBTOOL=undefined
-
-# the libtool command -- only needed if SHARED=on
-# if left undefined, a fresh libtool script will be built
 
 LIBTOOL_LINK_FLAGS=
 
-# flags to add to command line when building a shared library
-# mainly used to pass the argument "-no-undefined" on cygwin
+# flags to add to command line when building a shared library.
+# For very obscure reasons, you may need to set this to "-no-undefined" on 
+# cygwin
 
 LIBTOOL_LINK_LIBS=undefined
 
 # libraries to add to the command line when building a shared library.
 # mainly used to pass the argument "-lpthread", which NTL's
-# configure script will do automatically if SHARED=on and NTL_THREADS=on,
-# unless user explicitly provides a value for LIBTOOL_LINK_LIBS.
+# configure script will do automatically if ENABLE_LIBTOOL=on 
+# and NTL_THREADS=on, unless user explicitly provides a value for 
+# LIBTOOL_LINK_LIBS.
 # the purpose of this is to prevent so-called "underlinking".
 # specifically, it allows NTL clients to not pass "-pthread" to the
 # compiler when linking their own programs.
@@ -507,17 +527,6 @@ LIBTOOL_LINK_LIBS=undefined
 # If the ranlib command does not exist, everything will still function OK.
 
 
-
-########### Further installation variables:
-
-LIBDIR=$(PREFIX)/lib
-INCLUDEDIR=$(PREFIX)/include
-DOCDIR=$(PREFIX)/share/doc
-# Where to install NTL.
-#
-# Execution of 'make install' copies header files into $(INCLUDEDIR)/NTL,
-# copies the library itself to $(LIBDIR)/libntl.a, and copies the documentation
-# files into $(DOCDIR)/NTL.
 
 ########## TLS hack
 
@@ -544,7 +553,7 @@ NTL_DISABLE_MOVE=off
 # will be disabled as well for many other types (like polynomials).  The second
 # flag will disable move constuctors and move assignment operators for all NTL
 # types.
-
+#
 # These flags are only relevant in C++11 mode.  They are meant to deal with
 # backward compatibility issues for legacy NTL clients that may not deal well
 # with automatically generated move operations.  It turns out that move
@@ -565,7 +574,7 @@ NTL_LEGACY_NO_NAMESPACE=off
 
 
 NTL_LEGACY_INPUT_ERROR=off
- 
+
 # abort on input errors, instead of just setting the
 # "fail bit" of the istream object
 
@@ -710,15 +719,11 @@ NTL_AVOID_BRANCHING=off
 # this option.  When in doubt, turn this option on.
 
 
-
-
 NTL_GF2X_NOINLINE=off
 
 # By default, the low-level GF2X multiplication routine in inlined.  This can
 # potentially lead to some trouble on some platforms, and you can override the
 # default by setting this flag.
-
-
 
 
 NTL_GF2X_ALTCODE=off
@@ -734,23 +739,4 @@ NTL_GF2X_ALTCODE1=off
 
 # Yet another alternative implementation for GF2X multiplication.
 
-
-
-########## More GMP Options:
-
-
-GMP_INCDIR=$(GMP_PREFIX)/include
-# directory containing gmp.h
-
-GMP_LIBDIR=$(GMP_PREFIX)/lib
-# directory containing libgmp.a
-
-
-####### More gf2x options:
-
-GF2X_INCDIR=$(GF2X_PREFIX)/include
-# directory containing gf2x.h
-
-GF2X_LIBDIR=$(GF2X_PREFIX)/lib
-# directory containing libgf2x.a
 

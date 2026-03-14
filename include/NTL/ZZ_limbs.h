@@ -3,28 +3,33 @@
 
 #include <NTL/ZZ.h>
 
+
+// NOTE: unlike other NTL header files, this one needs access
+// to GMP's header file, which means that C++ files that include
+// this file will need to ensure that the compiler has the 
+// right "include path" to get at GMP's header file.
+
+
+
+
 #ifdef NTL_GMP_LIP
 #include <gmp.h>
-#endif
-
-
-
-
-
-#ifdef NTL_GMP_LIP
 
 typedef mp_limb_t _ntl_limb_t;
 
 #else
 
 typedef unsigned long _ntl_limb_t;
-#define NTL_BITS_PER_LIMB_T NTL_BITS_PER_LONG
+
+// #define NTL_BITS_PER_LIMB_T NTL_BITS_PER_LONG
+// This is already defined in ZZ.h 
+
 
 #endif
 
 void _ntl_glimbs_set(const _ntl_limb_t *p, long n, _ntl_gbigint *x);
 
-// DIRT: This exposes some internals that shoup be in lip.cpp,
+// DIRT: This exposes some internals that should be in lip.cpp,
 // but are here to make it inline.
 inline 
 const _ntl_limb_t * _ntl_glimbs_get(_ntl_gbigint p)

@@ -1,13 +1,11 @@
 #include <NTL/ctools.h>
 
 #include <cstdlib>
-#include <immintrin.h>
 #include <iostream>
 
 
-#if (!defined(__GNUC__) || !defined(__x86_64__) || !defined(__AVX__))
-#error "AVX not supported"
-#endif
+#include <NTL/simde_avx.h>
+
 
 #if (NTL_BITS_PER_LONG != 64 || NTL_BITS_PER_INT != 32 || NTL_DOUBLE_PRECISION != 53)
 #error "AVX not supported"
@@ -19,6 +17,8 @@
 #endif
 
 using namespace std;
+
+
 
 void fun(double * x, const double *a, const double *b)
 {
@@ -41,20 +41,20 @@ int main()
    double *b = vp + 1*4;
    double *x = vp + 2*4;
 
-   a[0] = atoi("1");
-   a[1] = atoi("2");
-   a[2] = atoi("3");
-   a[3] = atoi("4");
+   a[0] = _ntl_nofold(1);
+   a[1] = _ntl_nofold(2);
+   a[2] = _ntl_nofold(3);
+   a[3] = _ntl_nofold(4);
 
-   b[0] = atoi("2");
-   b[1] = atoi("3");
-   b[2] = atoi("4");
-   b[3] = atoi("5");
+   b[0] = _ntl_nofold(2);
+   b[1] = _ntl_nofold(3);
+   b[2] = _ntl_nofold(4);
+   b[3] = _ntl_nofold(5);
 
-   x[0] = atoi("3");
-   x[1] = atoi("4");
-   x[2] = atoi("5");
-   x[3] = atoi("6");
+   x[0] = _ntl_nofold(3);
+   x[1] = _ntl_nofold(4);
+   x[2] = _ntl_nofold(5);
+   x[3] = _ntl_nofold(6);
 
    fun(x, a, b);
 

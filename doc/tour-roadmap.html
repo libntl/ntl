@@ -65,8 +65,18 @@ GMP has really become quite good:  it seems well supported on
 many platforms, and is typically much faster than LIP.
 
 <p>
-I've now re-structured NTL so that one can use
-either 'traditional' LIP or GMP as the long integer package.
+NTL was later re-structured NTL so that one can use
+GMP in place of the  'traditional' LIP.
+In fact, this is the default in current NTL releases.
+
+<p>
+For a more complete history of NTL and details about its
+evolution and implementation, see my paper 
+"Arithmetic Software Libraries"
+published as a chapter in 
+<a href="https://www.cambridge.org/9781108795937"><i>Computational Cryptography</i></a>,
+and also available online 
+<a href="https://shoup.net/papers/akl-chapter.pdf">here</a>.
 
 <p>
 
@@ -103,72 +113,86 @@ I'd also be happy to discuss ideas for making NTL more
 open to make it easier for others to contribute.
 
 <ul>
-<p> <li>
-Support for
-bivariate polynomial arithmetic, including GCDs, resultants,
-and factoring, and for integer and all the various finite field
-coefficient rings.
+<li>
+Add more thread boosting to various parts of the library
+<li>
+Add SIMD support for other architectures besides x86 and Aarch64
+(and possibly extend some of the SIMD support for Aarch64)
+<li>
+Add conversions from <tt>long long</tt> and <tt>unsigned long long</tt>
+to <tt>ZZ</tt> (and perhaps other types), at least for <tt>C++11</tt>.
+Note that on most Unix-based platforms, these are the same size 
+as <tt>long</tt>, but some platforms define types such as
+<tt>int64_t</tt> in terms of the <tt>long long</tt> variants,
+so even on Unix-based platforms this would be useful
 
-<p><li>
-Code for elliptic curves,
-including an elliptic curve point counting algorithm.
-
-<p><li>
-Integer factorization algorithms.
-
-<p><li>
-Implementations of some of the newer lattice basis reduction algorithms.
-
-<p><li>
-Improvements to the
-polynomial multiplication algorithms over <tt>ZZ</tt>
-could be improved.
-One specific improvement: the Schoenhage-Strassen algorithm
-currently does not incorporate the so-called "square root of two trick".
-
-<p><li>
+<li>
+Reduce linear algebra operations over <tt>ZZ_p</tt> (like matrix inversion,
+system solving, etc) to matrix multiplication (which is much
+faster)
+<ul>
+<li>
+This should be a fairly straightforward and self contained project
+</ul>
+<li>
+Fast algorithms for general (or more specifice) 
+multi-point evaluation and interpolation
+over <tt>ZZ_p</tt> (and other coefficient domains)
+<ul>
+<li>
+This should be a fairly straightforward and self contained project
+</ul>
+<li>
+Bivariate polynomial arithmetic:
+<ul>
+<li>Multiplication can be implemented by reduction to univariate
+multiplication vie Kronecker substitution (the logic for this is already
+written for polynomial multiplication over extension fields,
+and can be easily repurposed)
+<li>
+GCD can be reduced can also be implemented by reduction to
+univariate polynomials (via multi-point evaluation and interpolation)
+<li>
+There are a number of programming interface issues that would
+have to be worked out to maintain consistency with the
+rest of NTL
+</ul>
+<li>
+Matrix arithmetic over polynomials:
+<ul>
+<li>
+Many operaations can be reduced to operations over the
+coefficient domain (via multi-point evaluation and interpolation)
+<li>
+There are a number of programming interface issues that would
+have to be worked out to maintain consistency with the
+rest of NTL
+</ul>
+<li>
 Improvements to <tt>zz_pX</tt> arithmetic.
+<ul>
+<li>
 For small <tt>p</tt>, it is likely faster to use 
 Kronecker-substitution to reduce <tt>zz_pX</tt> 
 multiplication to <tt>ZZ</tt> multiplication.
 This is especially true if GMP is used for <tt>ZZ</tt> arithmetic.
+<li>
 Implementing this should not be too hard, but then one would have
 to go through all of the <tt>zz_pX</tt> code to make all
 other operations directly reduce to multiplication in <tt>zz_pX</tt>.
 This will be a bit tedious, but it shouldn't be too difficult,
 since one can copy and paste corresponding code from <tt>zz_pEX</tt>,
 where this that already been done.
-
-<p><li>
-Improvements to some of the <tt>RR</tt> algorithms.
-In particular, the trig, exp, and log functions are currently woefully
-inefficient.
-
 </ul>
 
-<h3>Some things I plan to work on</h3>
-
-Here are a few things I plan to work on in the near future.
-
+<li>
+Improvements to some of the <tt>RR</tt> algorithms.
 <ul>
-<p><li>
-Now that NTL is thread safe, it is possible to use multiple cores
-within NTL to improve performance.
-One possibilty is to utilize multiple cores in the modular
-FFT implementation of polynomial multiplication.
-Both the FFT (over different small primes) and reduce/CRT
-(over different coefficients) steps are trivially parallelizable.
-
-<p><li>
-Introduce some <tt>C++11</tt> features, like "move constructors"
-and "move assignment".
-This would have to be done with compile-time flags to support
-older compilers.
-
-<p><li>
-If nobody else will do it, I will eventually do the <tt>zz_pX</tt>
-improvements outlined above.
-
+<li>
+In particular, the trig, exp, and log functions are currently woefully
+inefficient.
+</ul>
+</ul>
 
 </ul>
 

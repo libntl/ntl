@@ -1,8 +1,8 @@
 
 #include <NTL/tools.h>
 
-#include <cctype>
-#include <cstdio>
+//#include <cctype>
+//#include <cstdio>
 
 
 

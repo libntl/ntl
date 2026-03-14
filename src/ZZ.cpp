@@ -16,6 +16,8 @@
 #include <tmmintrin.h>
 #endif
 
+
+
 #if defined(NTL_HAVE_KMA)
 #include <NTL/linux_s390x.h>
 #endif
@@ -2274,16 +2276,16 @@ aes256ctr_stream(unsigned char out[BUFSIZE], unsigned char iv[16], const unsigne
       unsigned char k[32];
    } param;
 
-   memcpy(&param.cv, &iv[12], sizeof(param.cv));
+   std::memcpy(&param.cv, &iv[12], sizeof(param.cv));
    param.cv--;
-   memcpy(&param.j0[0], &iv[0], sizeof(param.j0) - sizeof(param.cv));
-   memcpy(&param.j0[12], &param.cv, sizeof(param.cv));
-   memcpy(param.k, key, sizeof(param.k));
+   std::memcpy(&param.j0[0], &iv[0], sizeof(param.j0) - sizeof(param.cv));
+   std::memcpy(&param.j0[12], &param.cv, sizeof(param.cv));
+   std::memcpy(param.k, key, sizeof(param.k));
 
    cpacf_kma(fc, &param, out, NULL, 0, zerobuf, sizeof(zerobuf));
 
    param.cv++;
-   memcpy(&iv[12], &param.cv, sizeof(param.cv));
+   std::memcpy(&iv[12], &param.cv, sizeof(param.cv));
 }
 
 #else
@@ -2828,7 +2830,7 @@ struct RandomStream_impl {
    explicit
    RandomStream_impl(const unsigned char *k)
    {
-      memcpy(key, k, sizeof(key));
+      std::memcpy(key, k, sizeof(key));
       memset(iv, 0, sizeof(iv));
       iv[15] = 1; // nonce = 1
    }
@@ -2854,7 +2856,7 @@ struct RandomStream_impl {
 
       if (n > 0 && sizeof(buf) - sizeof(key) - pos > 0) {
          len = min((size_t)n, sizeof(buf) - sizeof(key) - pos);
-         memcpy(res, buf + sizeof(key) + pos, len);
+         std::memcpy(res, buf + sizeof(key) + pos, len);
 
          n -= len;
          res += len;
@@ -2863,10 +2865,10 @@ struct RandomStream_impl {
 
       while (n > 0) {
          aes256ctr_stream(buf, iv, key);
-         memcpy(key, buf, sizeof(key));
+         std::memcpy(key, buf, sizeof(key));
 
          len = min((size_t)n, sizeof(buf) - sizeof(key));
-         memcpy(res, buf + sizeof(key), len);
+         std::memcpy(res, buf + sizeof(key), len);
 
 	 n -= len;
          res += len;

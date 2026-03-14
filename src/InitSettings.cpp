@@ -96,6 +96,14 @@ int main()
    cout << "NTL_GF2X_LIB=0\n";
 #endif
 
+#ifdef NTL_SIMDE_LIB
+   cout << "NTL_SIMDE_LIB=1\n";
+#else
+   cout << "NTL_SIMDE_LIB=0\n";
+#endif
+
+
+
 #ifdef NTL_STD_CXX11
    cout << "NTL_STD_CXX11=1\n";
 #else

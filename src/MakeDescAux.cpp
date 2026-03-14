@@ -2,38 +2,54 @@
 #include <cstdlib>
 using namespace std;
 
-int val_int(int x) { return x; }
-unsigned int val_uint(unsigned int x) { return x; }
- 
-long val_long(long x) { return x; }
-unsigned long val_ulong(unsigned long x) { return x; }
- 
-size_t val_size_t(size_t x) { return x; }
+int val_int(int x) 
+{ volatile int _x = x; return _x; }
 
-double val_double(double x) { return x; }
-long double val_ldouble(double x) { return x; }
+unsigned int val_uint(unsigned int x) 
+{ volatile unsigned int _x = x;  return _x; }
  
-void touch_int(int* x) {}
-void touch_uint(unsigned int* x) {}
+long val_long(long x) 
+{ volatile long _x = x; return _x; }
+
+unsigned long val_ulong(unsigned long x) 
+{ volatile unsigned long _x = x; return _x; }
  
-void touch_long(long* x) {}
-void touch_ulong(unsigned long* x) {}
+size_t val_size_t(size_t x) 
+{  volatile size_t _x = x; return _x; }
 
-void touch_size_t(size_t* x) {}
+double val_double(double x) 
+{  volatile double _x = x; return _x; }
+
+long double val_ldouble(double x) 
+{ volatile double _x = x; return _x; }
+
+
+
  
-void touch_double(double* x) {}
-void touch_ldouble(long double* x) {}
+void touch_int(int* x) 
+{ *x = val_int(*x); }
 
-double sum_double(double *x, long n)
-{
-   long i;
-   double acc = 0;
+void touch_uint(unsigned int* x) 
+{ *x = val_uint(*x); }
+ 
+void touch_long(long* x) 
+{ *x = val_long(*x); }
 
-   for (i = 0; i < n; i++)
-      acc += x[i];
+void touch_ulong(unsigned long* x) 
+{ *x = val_ulong(*x); }
 
-   return acc;
-}
+void touch_size_t(size_t* x) 
+{ *x = val_size_t(*x); }
+ 
+void touch_double(double* x) 
+{ *x = val_double(*x); }
+
+void touch_ldouble(long double* x) 
+{ *x = val_ldouble(*x); }
+
+
+
+
 
 double fma_test(double a, double b, double c)
 {

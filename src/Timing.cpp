@@ -3,6 +3,7 @@
 #include <NTL/ZZXFactoring.h>
 #include <NTL/GF2XFactoring.h>
 #include <NTL/GF2EXFactoring.h>
+#include <NTL/mat_ZZ_p.h>
 
 NTL_CLIENT
 
@@ -114,6 +115,16 @@ int main()
       cout << "factoring degree-1000 poly mod 1000-bit prime...\n";
       TIME_IT(t, CanZass(f, _cnt == 0));
       cout << "...total time = " << t << "\n\n";
+
+
+      SetSeed(conv<ZZ>(71));
+      Mat<ZZ_p> aa, bb, cc; 
+      random(aa, n, n);
+      random(bb, n, n);
+      random(cc, n, n);
+      TIME_IT(t, mul(cc, aa, bb));
+      cout << "multiply 1000x1000 matrices mod 1000-bit prime: " << t << "\n\n";
+
    }
    {
       n = 500;

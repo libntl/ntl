@@ -1309,15 +1309,10 @@ and these routines should only abort if they cannot allocate space
 for temporary big integers within GMP itself.
 So this should only be an issue of you are working with some
 very large integers.
-The GMP developers are working on improving their error handling.
-When that happens, NTL will inherit these improvements.
-If you really need proper error handling, and are willing to pay
-a certain performance penalty, then you should configure
-and build NTL <i>without</i> GMP.
 
 <p>
-<b>Issues with gf2x:</b>
-Similar comments apply to NTL builds that use the <tt>gf2x</tt>
+<b>Issues with GF2X:</b>
+Similar comments apply to NTL builds that use the GF2X
 library.
 
 

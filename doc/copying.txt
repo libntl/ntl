@@ -2,7 +2,7 @@
 COPYRIGHT NOTICE
 
 NTL -- A Library for Doing Number Theory
-Copyright (C) 1996-2021  Victor Shoup
+Copyright (C) 1996-2025  Victor Shoup
 
 The most recent version of NTL is available at http://www.shoup.net
 
@@ -42,12 +42,11 @@ version 2.1 of the LGPL.  It is possible to use some of these older versions
 with NTL. While NTL is fully functional without GMP, it may be significantly
 slower.
 
-Note that one can optionally build NTL with the gf2x package (see
-http://gforge.inria.fr/projects/gf2x/). However, the current version of gf2x is
-licensed on the GPL, which is more restrictive than the LGPL.  The authors of
-gf2x have indicated that an LGPL version of their package may be released at
-some point in the future.  In any case, NTL can be used and is fully functional
-without the gf2x package.
+Note that one can optionally build NTL with the GF2X library (see
+https://gitlab.inria.fr/gf2x/gf2x). The current version of GF2X is licensed
+either under the GPL or LGPL, depending on which configuration of the GF2X
+library is used.  In any case, NTL can be used and is fully functional without
+the GF2X package.
 
 Note that the quad_float module in NTL is derived from the doubledouble
 package, originally developed by Keith Briggs (see

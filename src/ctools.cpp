@@ -4,6 +4,7 @@
 #include <cmath>
 
 
+#ifndef NTL_FCHECK
 
 //============== define _ntl_GetWallTime() ===============
 
@@ -102,6 +103,8 @@ double _ntl_GetWallTime( )
 
 //==============  END define _ntl_GetWallTime() ===============
 
+#endif
+
 
 /*
  * An IEEE double x is finite if and only if x - x == 0.
@@ -142,6 +145,25 @@ void _ntl_ForceToMem(double *p)
 {
    volatile double x = *p;
    *p = x;
+}
+
+// returns x, disabling constant folding
+int _ntl_nofold(int x) 
+{
+   volatile int y = x;
+   return y;
+}
+
+long _ntl_nofold(long x) 
+{
+   volatile long y = x;
+   return y;
+}
+
+double _ntl_nofold(double x) 
+{
+   volatile double y = x;
+   return y;
 }
 
 

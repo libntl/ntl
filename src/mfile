@@ -10,7 +10,6 @@
 CXX=@{CXX}
 # A C++ compiler, e.g., g++, CC, xlC
 
-
 CXXFLAGS=@{CXXFLAGS}
 # Flags for the C++ compiler
 
@@ -30,7 +29,7 @@ RANLIB=@{RANLIB}
 # set to echo if you want to disable it completely
 
 LDFLAGS=@{LDFLAGS}
-# libraries for linking C++ programs
+# flags for linking C++ programs
 
 LDLIBS=@{LDLIBS}
 # libraries for linking C++ programs
@@ -51,12 +50,14 @@ LIBTOOL_LINK_LIBS=@{LIBTOOL_LINK_LIBS}
 # configure script will do "automagically" unless user overrides
 # that behavior
 
+SYS_PREFIX=@{SYS_PREFIX}
 DEF_PREFIX=@{DEF_PREFIX}
 
 PREFIX=@{PREFIX}
 LIBDIR=@{LIBDIR}
 INCLUDEDIR=@{INCLUDEDIR}
 DOCDIR=@{DOCDIR}
+PKGDIR=@{PKGDIR}
 # where to install NTL
 
 DESTDIR=
@@ -92,10 +93,18 @@ GMP_OPT_LIBDIR=@{GMPL}-L$(GMP_LIBDIR) # GMPL
 GMP_OPT_LIB=@{GMP}-lgmp # GMP
 # uncomment these if using GMP
 
+GMP_OPT_RPATH=@{GMPL}@{RPATH}-Wl,-rpath,$(GMP_LIBDIR)
+# uncomment this if using GMP 
+
+GMP_OPT_LIBPATH=$(GMP_OPT_LIBDIR) $(GMP_OPT_RPATH)
+# used when linking to GMP without libtool
+# this ensures that we link to the right version of a shared GMP library
+
+
 
 ###############################################################
 #
-#  Third, if you want to use gf2x (a library for fast
+#  Third, if you want to use GF2X (a library for fast
 #  multiplication over GF(2)[X]), you need to
 #  define the variables GF2X_OPT_INCDIR, GF2X_OPT_LIBDIR, GF2X_OPT_LIB below.
 #  You also will have to set NTL_GF2X_LIB 
@@ -106,7 +115,7 @@ GMP_OPT_LIB=@{GMP}-lgmp # GMP
 GF2X_PREFIX=@{GF2X_PREFIX}
 
 GF2X_INCDIR=@{GF2X_INCDIR}
-# directory containing gf2x.h if using gf2x
+# directory containing gf2x.h if using GF2X
 
 GF2X_LIBDIR=@{GF2X_LIBDIR}
 # directory containing libgf2x.a
@@ -114,7 +123,18 @@ GF2X_LIBDIR=@{GF2X_LIBDIR}
 GF2X_OPT_INCDIR=@{GF2XI}-I$(GF2X_INCDIR) # GF2X
 GF2X_OPT_LIBDIR=@{GF2XL}-L$(GF2X_LIBDIR) # GF2X
 GF2X_OPT_LIB=@{GF2X}-lgf2x # GF2X
-# uncomment these if using gf2x
+# uncomment these if using GF2X
+
+GF2X_OPT_RPATH=@{GF2XL}@{RPATH}-Wl,-rpath,$(GF2X_LIBDIR)
+# uncomment this if using GF2X
+
+GF2X_OPT_LIBPATH=$(GF2X_OPT_LIBDIR) $(GF2X_OPT_RPATH)
+# used when linking to GF2X without libtool
+# this ensures that we link to the right version of a shared GF2X library
+
+
+
+
 
 
 ###############################################################
@@ -180,9 +200,9 @@ INCL=FFT.h FFT_impl.h FacVec.h GF2.h GF2E.h GF2EX.h GF2EXFactoring.h GF2X.h  \
 	vec_double.h vec_long.h vec_lzz_p.h vec_lzz_pE.h vec_quad_float.h vec_vec_GF2.h  \
 	vec_vec_GF2E.h vec_vec_RR.h vec_vec_ZZ.h vec_vec_ZZ_p.h vec_vec_ZZ_pE.h  \
 	vec_vec_long.h vec_vec_lzz_p.h vec_vec_lzz_pE.h vec_xdouble.h xdouble.h  \
-	config.h version.h new.h vec_ulong.h vec_vec_ulong.h SmartPtr.h  \
+	version.h new.h vec_ulong.h vec_vec_ulong.h SmartPtr.h  \
 	Lazy.h LazyTable.h thread.h  BasicThreadPool.h MatPrime.h PD.h pd_FFT.h  \
-	linux_s390x.h
+	linux_s390x.h simde_avx.h simde_fma.h simde_pclmul.h
 
 
 
@@ -214,8 +234,8 @@ SCRIPTS=MakeGetTime MakeGetPID MakeCheckFeatures ResetFeatures CopyFeatures  \
 MD=MakeDesc.cpp MakeDescAux.cpp newnames.cpp gen_gmp_aux.cpp gf2x_version_1_2_or_later_required.cpp
 GT=GetTime0.cpp GetTime1.cpp GetTime2.cpp GetTime3.cpp GetTime4.cpp GetTime5.cpp TestGetTime.cpp
 GP=GetPID1.cpp GetPID2.cpp TestGetPID.cpp
-CH=CheckCompile.cpp GenConfigInfo.cpp CheckContract.cpp CheckContractAux.cpp \
-	CheckThreads.cpp
+CH=CheckCompile.cpp GenConfigInfo.cpp CheckContract.cpp  \
+	CheckThreads.cpp CheckGMP.cpp 
 
 AUXPROGS = TestGetTime TestGetPID CheckFeatures CheckCompile GenConfigInfo CheckContract \
 	CheckThreads
@@ -357,55 +377,182 @@ setup2:
 # This also checks that the right version of gf2x library.
 
 setup3:
-	$(LINK) $(GMP_OPT_INCDIR) -o gen_gmp_aux gen_gmp_aux.cpp $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(LDLIBS)
+	$(LINK) $(GMP_OPT_INCDIR) -o gen_gmp_aux gen_gmp_aux.cpp $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
 	./gen_gmp_aux > ../include/NTL/gmp_aux.h 
-	$(LINK) $(GF2X_OPT_INCDIR) -o gf2x_version_1_2_or_later_required gf2x_version_1_2_or_later_required.cpp $(GF2X_OPT_LIBDIR) $(GF2X_OPT_LIB) $(LDLIBS) 
+	$(LINK) $(GF2X_OPT_INCDIR) -o gf2x_version_1_2_or_later_required gf2x_version_1_2_or_later_required.cpp $(GF2X_OPT_LIBPATH) $(GF2X_OPT_LIB) $(LDLIBS) 
 
 # setup4 runs the wizard
 
 setup4:
 	sh Wizard $(WIZARD) "$(MAKE)" "$(FEATURES)"
 
+#### commands to build things
+
+@{STAT}LIBTOOL_LINK_AS=-static
+@{SHAR}LIBTOOL_LINK_AS=-version-info `cat VERSION_INFO`
 
 ntl.a:	$(OBJ) 
-@{LSTAT}	$(AR) $(ARFLAGS) ntl.a $(OBJ) #LSTAT
-@{LSTAT}	- $(RANLIB) ntl.a #LSTAT
-@{LSHAR}	$(LIBTOOL) --tag=CXX --mode=link $(LINK) $(LIBTOOL_LINK_FLAGS) -o libntl.la $(OBJ:.o=.lo) $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(GF2X_OPT_LIBDIR) $(GF2X_OPT_LIB) $(LDLIBS) $(LIBTOOL_LINK_LIBS) -rpath $(LIBDIR) -version-info `cat VERSION_INFO` #LSHAR
+@{NOLTOOL}	$(AR) $(ARFLAGS) ntl.a $(OBJ) #NOLTOOL
+@{NOLTOOL}	- $(RANLIB) ntl.a #NOLTOOL
+@{LTOOL}	$(LIBTOOL) --tag=CXX --mode=link $(LINK) $(LIBTOOL_LINK_FLAGS) -o libntl.la $(OBJ:.o=.lo) $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(GF2X_OPT_LIBDIR) $(GF2X_OPT_LIB) $(LDLIBS) $(LIBTOOL_LINK_LIBS) -rpath $(LIBDIR) $(LIBTOOL_LINK_AS) #LTOOL
 
-@{LSTAT}LCOMP= #LSTAT
-@{LSHAR}LCOMP=$(LIBTOOL) --tag=CXX --mode=compile #LSHAR
+LCOMP=@{LTOOL}$(LIBTOOL) --tag=CXX --mode=compile #LTOOL
+LCOMPX=@{LTOOL}@{PPIC} -prefer-pic #LTOOL&PPIC 
+
+LCOMPILE=$(LCOMP) $(COMPILE) $(LCOMPX)
 
 lip.o:	lip.cpp 
-	$(LCOMP) $(COMPILE) $(GMP_OPT_INCDIR) lip.cpp
+	$(LCOMPILE) $(GMP_OPT_INCDIR) lip.cpp
 
 GF2X.o:	GF2X.cpp
-	$(LCOMP) $(COMPILE) $(GF2X_OPT_INCDIR) GF2X.cpp
+	$(LCOMPILE) $(GF2X_OPT_INCDIR) GF2X.cpp
+
+mat_lzz_p.o:    mat_lzz_p.cpp
+	$(LCOMPILE) mat_lzz_p.cpp
 
 quad_float.o:	quad_float.cpp
-	$(LCOMP) $(COMPILE) $(NOCONTRACT) quad_float.cpp
+	$(LCOMPILE) $(NOCONTRACT) quad_float.cpp
 
 pd_FFT.o: pd_FFT.cpp
-	$(LCOMP) $(COMPILE) $(NOCONTRACT) pd_FFT.cpp
+	$(LCOMPILE) $(NOCONTRACT) pd_FFT.cpp
 
+TESTRPATH=@{TESTRPATH}
 CheckCompile: CheckCompile.cpp
-	$(LINK) -o  CheckCompile CheckCompile.cpp $(LDLIBS)
+	$(LINK) -o  CheckCompile CheckCompile.cpp $(TESTRPATH) $(LDLIBS) 
 
 GenConfigInfo: GenConfigInfo.cpp
 	$(LINK) -o  GenConfigInfo GenConfigInfo.cpp $(LDLIBS)
 
-CheckContract: CheckContract.cpp CheckContractAux.cpp
-	$(LINK) $(NOCONTRACT) -o  CheckContract CheckContract.cpp CheckContractAux.cpp $(LDLIBS)
+CheckContract: CheckContract.cpp MakeDescAux.cpp
+	$(LINK) $(NOCONTRACT) -o  CheckContract CheckContract.cpp MakeDescAux.cpp $(LDLIBS)
 
 CheckThreads: CheckThreads.cpp
 	$(LINK) -o  CheckThreads CheckThreads.cpp $(LDLIBS)
 
+CheckGMP: CheckGMP.cpp
+	$(LINK) $(GMP_OPT_INCDIR) -o  CheckGMP CheckGMP.cpp $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
+
+
 
 .cpp.o: 
-	$(LCOMP) $(COMPILE) $<
+	$(LCOMPILE) $<
 
 .cpp: 
-@{LSTAT}	$(LINK) -o $@ $< ntl.a $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(GF2X_OPT_LIBDIR) $(GF2X_OPT_LIB) $(LDLIBS) #LSTAT
-@{LSHAR}	$(LIBTOOL) --tag=CXX --mode=link $(LINK) -o $@ $< libntl.la #LSHAR
+@{NOLTOOL}	$(LINK) -o $@ $< ntl.a $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(GF2X_OPT_LIBPATH) $(GF2X_OPT_LIB) $(LDLIBS) #NOLTOOL
+@{LTOOL}	$(LIBTOOL) --tag=CXX --mode=link $(LINK) -o $@ $< libntl.la #LTOOL
+
+#### auxilliary stuff to help build USER_MAKEFILE.txt ntl.pc
+
+INSTALLED_LIBDIR=@{NTLL}-L$(LIBDIR) 
+INSTALLED_RPATH=@{SHAR}@{RPATH}@{NTLL}-Wl,-rpath,$(LIBDIR)
+INSTALLED_LIBPATH=$(INSTALLED_LIBDIR) $(INSTALLED_RPATH)
+
+INSTALLED_INCLUDE=@{NTLI}-I$(INCLUDEDIR) 
+
+INSTALLED_LINK = $(CXX) $(INSTALLED_INCLUDE) $(CPPFLAGS) $(CXXFLAGS) $(CXXAUTOFLAGS) $(LDFLAGS)
+
+
+user_makefile:
+#
+#common
+#
+	@printf "# This is a sample makefile that can be used to compile programs using \n"
+	@printf "# an installed version of NTL.\n"
+	@printf "# Using this ensures that your programs compile with flags consistent\n"
+	@printf "# with the build, and link to the right libraries.\n"
+	@printf "#\n"
+	@printf "# The basic functionality provided by this makefile is to allow\n"
+	@printf "# you to compile 'foo.cpp' into the executable file 'foo' by executing\n"
+	@printf "#    make foo   \n"
+	@printf "# You can adapt this to the needs of your own project as necessary.\n"
+	@printf "\n\n";
+#
+#static
+#
+@{STAT}	@printf '.cpp:\n'
+@{STAT}	@printf '\t$(INSTALLED_LINK) $$< -o $$@  $(INSTALLED_LIBPATH) -lntl $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(GF2X_OPT_LIBPATH) $(GF2X_OPT_LIB) $(LDLIBS)\n'
+@{STAT}	@printf '\n'
+@{STAT}	@printf '# ntl was installed as a static library with dependencies:'
+#
+#shared
+#
+@{SHAR}	@printf '.cpp:\n'
+@{SHAR}	@printf '\t$(INSTALLED_LINK) -o $$@ $$< $(INSTALLED_LIBPATH) -lntl\n'
+@{SHAR}	@printf '\n'
+@{SHAR}	@printf '# ntl was installed as a shared library with dependencies:'
+#
+#common
+#
+@{GMP}	@printf ' gmp'
+@{GF2X}	@printf ' gf2x'
+	@printf '\n\n'
+	@printf '# COMPILER OPTIONS\n'
+@{NTLI}	@printf '# "-I$(INCLUDEDIR)" ensures ntl header files found at compile time\n'
+	@case '$(CXXFLAGS)' in *' -g '*|'-g '*|*' -g'|'-g') printf '# "-g" enables the debugger\n' ;; esac
+	@case '$(CXXFLAGS)' in *'-O2'*) printf '# "-O2" enables (level 2) optimization (highly recommend not changing)\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-std=c++11'*) printf '# "-std=c++11" enables the C++11 standard\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-std=c++14'*) printf '# "-std=c++14" enables the C++14 standard\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-pthread'*) printf '# "-pthread" enables multi-threading (also needed for linking)\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-march=native'*) printf '# "-march=native" targets compilation to the native instruction set\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-mcpu=native'*) printf '# "-mcpu=native" targets compilation to the native instruction set\n#    (preferred over -march=native for arm platforms)\n' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-fp-model precise'*) printf '# "-fp-model precise" needed in icc compiler to keep floating point accurate\n' ;; esac
+	@printf '# "$$<" expands to "foo.cpp" when run as "make foo"\n'
+	@printf '\n# LINKER OPTIONS\n'
+	@printf '# "-o $$@" expands to "-o foo" when run as "make foo"\n'
+#
+#static
+#
+@{STAT}@{NTLL}	@printf '# "-L$(LIBDIR)" ensures ntl is found at link time\n'
+@{STAT}	@printf '# "-lntl" ensures that program will link to ntl\n'
+@{STAT}@{GMPL}	@printf '# "-L$(GMP_LIBDIR)" ensures that gmp is found at link time\n' 
+@{STAT}@{GMPL}@{RPATH}	@printf '# "-Wl,-rpath,$(GMP_LIBDIR)" ensures gmp is found at runtime\n#    if it is a shared lib\n#    alternatively, add $(GMP_LIBDIR) to LD_LIBRARY_PATH\n' 
+@{STAT}@{GMPL}	@printf '# "-lgmp" ensures that program will link to gmp\n' 
+@{STAT}@{GF2XL}	@printf '# "-L$(GF2X_LIBDIR)" ensures that gf2x is found at link time\n' 
+@{STAT}@{GF2XL}@{RPATH}	@printf '# "-Wl,-rpath,$(GF2X_LIBDIR)" ensures gf2x is found at runtime\n#    if it is a shared lib\n#    alternatively, add $(GF2X_LIBDIR) to LD_LIBRARY_PATH\n' 
+@{STAT}@{GF2XL}	@printf '# "-lgf2x" ensures that program will link to gf2x\n' 
+#
+#shared
+#
+@{SHAR}@{NTLL}	@printf '# "-L$(LIBDIR)" ensures ntl is found at link time\n'
+@{SHAR}@{RPATH}@{NTLL}	@printf '# "-Wl,-rpath,$(LIBDIR)" ensures ntl is found at runtime\n#    alternatively, add $(LIBDIR) to LD_LIBRARY_PATH\n' 
+@{SHAR}	@printf '# "-lntl" ensures that program will link to ntl\n'
+#
+#common
+#
+@{LTOOL}	@printf '\n# ntl was installed using libtool\n'
+@{LTOOL}	@printf '\n# in your project, you could alternatively compile and link as follows:\n'
+@{LTOOL}	@printf '#\tlibtool --tag=CXX --mode=link $(INSTALLED_LINK) -o $$@ $$< $(INSTALLED_LIBDIR) -lntl\n'
+@{LTOOL}	@printf '# which ensures ntl all dependencies are properly linked and accessible at runtime\n'
+@{LTOOL}	@printf '# and may offer convenient access to more linkage options via libtool\n'
+@{LTOOL}@{DARWIN}	@printf '# - on macOS, you may need to use someling like glibtool installed by (say)\n# - homebrew, and not the system libtool\n'
+
+
+
+
+REQUIRES_GMP=@{GMP}gmp >= 5.0
+REQUIRES_GF2X=@{GF2X}gf2x >= 1.2
+# these version numbers are generic minimal requirments and do not
+# reflect the versions detected during the build
+
+pkg_config:
+	@printf 'includedir=$(INCLUDEDIR)\n'
+	@printf 'libdir=$(LIBDIR)\n'
+	@printf 'Name: NTL\n'
+	@printf 'Description: A Library for doing Number Theory\n'
+	@printf "Version: $$(sed 's/^ntl-//' DIRNAME)\n"
+	@printf 'Cflags: -I$${includedir}'
+	@case '$(CXXAUTOFLAGS)' in *'-std=c++11'*) printf ' -std=c++11' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-std=c++14'*) printf ' -std=c++14' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-pthread'*) printf ' -pthread' ;; esac
+	@case '$(CXXAUTOFLAGS)' in *'-fp-model precise'*) printf ' -fp-model precise' ;; esac
+	@printf '\n'
+	@printf 'Libs: -L$${libdir} -lntl' 
+	@case '$(CXXAUTOFLAGS)' in *'-pthread'*) printf ' -pthread' ;; esac
+	@printf '\n'
+	@printf 'Requires.private: $(REQUIRES_GMP) $(REQUIRES_GF2X)\n' 
+
+
+
 
 #################################################################
 #
@@ -429,7 +576,7 @@ check:
 #   This helps avoid some problems (especially when copying ntl.a).
 #   Also, an attempt is made to make everything that is
 #   installed readable by everyone.
-#   
+#
 # make uninstall removes these files
 #   
 #################################################################
@@ -442,6 +589,7 @@ install:
 	rm -rf $(DESTDIR)$(INCLUDEDIR)/NTL
 	mkdir -m 755 $(DESTDIR)$(INCLUDEDIR)/NTL
 	cp -p ../include/NTL/*.h $(DESTDIR)$(INCLUDEDIR)/NTL
+	cp -p ../include/NTL/*.txt $(DESTDIR)$(INCLUDEDIR)/NTL
 	- chmod -R a+r $(DESTDIR)$(INCLUDEDIR)/NTL
 	mkdir -p -m 755 $(DESTDIR)$(DOCDIR)
 	rm -rf $(DESTDIR)$(DOCDIR)/NTL
@@ -450,37 +598,48 @@ install:
 	cp -p ../doc/*.html $(DESTDIR)$(DOCDIR)/NTL
 	cp -p ../doc/*.gif $(DESTDIR)$(DOCDIR)/NTL
 	- chmod -R a+r $(DESTDIR)$(DOCDIR)/NTL
+	mkdir -p -m 755 $(DESTDIR)$(PKGDIR)
+	cp -p ../lib/pkgconfig/ntl.pc $(DESTDIR)$(PKGDIR)
 	mkdir -p -m 755 $(DESTDIR)$(LIBDIR)
-@{LSTAT}	cp -p ntl.a $(DESTDIR)$(LIBDIR)/libntl.a #LSTAT
-@{LSTAT}	- chmod a+r $(DESTDIR)$(LIBDIR)/libntl.a #LSTAT
-@{LSHAR}	$(LIBTOOL) --mode=install cp -p libntl.la $(DESTDIR)$(LIBDIR) #LSHAR
+@{NOLTOOL}	cp -p ntl.a $(DESTDIR)$(LIBDIR)/libntl.a #NOLTOOL
+@{NOLTOOL}	- chmod a+r $(DESTDIR)$(LIBDIR)/libntl.a #NOLTOOL
+@{LTOOL}	$(LIBTOOL) --mode=install cp -p libntl.la $(DESTDIR)$(LIBDIR) #LTOOL
+	@echo 
+	@echo '*** SUMMARY ***'
+	@echo '* include files installed to $(DESTDIR)$(INCLUDEDIR)/NTL'
+	@echo '* library files installed to $(DESTDIR)$(LIBDIR)'
+	@echo '* doc files installed to $(DESTDIR)$(DOCDIR)/NTL'
+	@echo '* pkg-config file installed to $(DESTDIR)$(PKGDIR)/ntl.pc'
+	@echo '** see $(DESTDIR)$(INCLUDEDIR)/NTL/CONFIG_LOG.txt for a summary of the configuration'
+	@echo '** see $(DESTDIR)$(INCLUDEDIR)/NTL/USER_MAKEFILE.txt for an example makefile to build user programs'
 
 
 uninstall:
-@{LSTAT}	rm -f $(LIBDIR)/libntl.a #LSTAT
-@{LSHAR}	$(LIBTOOL) --mode=uninstall rm -f $(LIBDIR)/libntl.la #LSHAR
-	rm -rf $(INCLUDEDIR)/NTL
-	rm -rf $(DOCDIR)/NTL
+@{NOLTOOL}	rm -f $(DESTDIR)$(LIBDIR)/libntl.a #NOLTOOL
+@{LTOOL}	$(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(LIBDIR)/libntl.la #LTOOL
+	rm -rf $(DESTDIR)$(INCLUDEDIR)/NTL
+	rm -rf $(DESTDIR)$(DOCDIR)/NTL
+	rm -f $(DESTDIR)$(PKGDIR)/ntl.pc
 
 #################################################################
 #
 #  Rules for cleaning up
 #
-#  make clobber removes *everything* created by make,
-#    but it does not restore config.h to its default.
+#  make clobber removes *everything* created by make, except
+#    config.h is left alone
 #
 #  make clean tidies up a bit
 #
 #################################################################
 
 clobber:	
-	rm -f ntl.a mach_desc.h ../include/NTL/mach_desc.h  GetTime.cpp GetPID.cpp
-	sh ResetFeatures '..' "$(FEATURES)" 
+	rm -f ntl.a GetTime.cpp GetPID.cpp
+	rm -f mach_desc.h ../include/NTL/mach_desc.h  
 	rm -f ../include/NTL/gmp_aux.h
+	sh ResetFeatures '..' "$(FEATURES)" 
 	sh RemoveProg $(PROGS) MakeDesc $(AUXPROGS) gen_gmp_aux gf2x_version_1_2_or_later_required
 	rm -f *.o
 	rm -rf small
-	rm -f cfileout mfileout
 	rm -rf .libs *.lo libntl.la
 	rm -f setup-phase
 
@@ -488,7 +647,7 @@ clean:
 	sh RemoveProg $(PROGS) MakeDesc $(AUXPROGS) gen_gmp_aux gf2x_version_1_2_or_later_required
 	rm -f *.o 
 	rm -rf small
-@{LSHAR}	- $(LIBTOOL) --mode=clean rm -f libntl.la *.lo #LSHAR
+@{LTOOL}	- $(LIBTOOL) --mode=clean rm -f libntl.la *.lo #LTOOL
 
 wclean:
 	rm -f *.o 
@@ -513,9 +672,10 @@ wclean:
 #################################################################
 
 libtool-gen-origin:
-	rm -rf libtool-origin && \
-	   cp -R libtool-seed libtool-origin && \
-	   cd libtool-origin && autoreconf -fiv && rm -rf autom4te.cache
+	rm -rf libtool-origin-tmp && \
+	   cp -R libtool-seed libtool-origin-tmp && \
+	   cd libtool-origin-tmp && autoreconf -fiv && rm -rf autom4te.cache
+	rm -rf libtool-origin && cp -R libtool-origin-tmp libtool-origin 
 
 ppdoc:
 	sh ppscript "$(TXFILES)"
@@ -524,6 +684,10 @@ ppclean:
 	rm -f ../doc/*.cpp
 
 
+TAR=tar 
+# on macOS, should use gtar to avoid xattr data being included
+# no need to make this a config option: just run "make package TAR=gtar"
+
 package:
 	sh unixify "$(SFILES) DIRNAME WINDIR VERSION_INFO NOTES" "$(INCL)" "$(DOC)" "$(FEATURES)"
 	rm -rf `cat DIRNAME`
@@ -531,12 +695,12 @@ package:
 	rm -f `cat DIRNAME`.tar.gz
 	mv unix `cat DIRNAME`
 	chmod -R a+rX `cat DIRNAME`
-	tar -cvf `cat DIRNAME`.tar `cat DIRNAME`
+	$(TAR) -cvf `cat DIRNAME`.tar `cat DIRNAME`
 	gzip `cat DIRNAME`.tar
 	rm -rf `cat DIRNAME`
 
 winpack:
-	./configure --nowrite NTL_GMP_LIP=off NTL_TLS_HACK=off
+	./configure --nowrite NTL_GMP_LIP=off NTL_TLS_HACK=off ENABLE_RPATH=off
 	sh dosify "$(SRC)" "$(INCL)" "$(DOC)" "$(TS)" "$(TD)" "$(FEATURES)"
 	rm -rf `cat WINDIR`
 	rm -f `cat WINDIR`.zip 
@@ -558,22 +722,23 @@ WOBJ=FFT.o GetTime.o GetPID.o ctools.o ZZ.o ZZVec.o ZZ_p.o ZZ_pX.o ZZ_pX1.o  \
 	thread.o BasicThreadPool.o fileio.o
 
 
-@{LSHAR}wntl.a: LCOMP= #LSHAR
+#@{LTOOL}wntl.a: LCOMP= #LTOOL
+#@{LTOOL}wntl.a: LCOMPX= #LTOOL
 wntl.a:	$(WOBJ) 
 	$(AR) $(ARFLAGS) wntl.a $(WOBJ)
 	- $(RANLIB) wntl.a
 
 
 Poly1TimeTest:
-	$(LINK) -o Poly1TimeTest Poly1TimeTest.cpp wntl.a  $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(LDLIBS)
+	$(LINK) -o Poly1TimeTest Poly1TimeTest.cpp wntl.a  $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
 Poly2TimeTest:
-	$(LINK) -o Poly2TimeTest Poly2TimeTest.cpp wntl.a  $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(LDLIBS)
+	$(LINK) -o Poly2TimeTest Poly2TimeTest.cpp wntl.a  $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
 Poly3TimeTest:
-	$(LINK) -o Poly3TimeTest Poly3TimeTest.cpp wntl.a  $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(LDLIBS)
+	$(LINK) -o Poly3TimeTest Poly3TimeTest.cpp wntl.a  $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
 
 
 GF2XTimeTest:
-	$(LINK) -o GF2XTimeTest GF2XTimeTest.cpp wntl.a  $(GMP_OPT_LIBDIR) $(GMP_OPT_LIB) $(LDLIBS)
+	$(LINK) -o GF2XTimeTest GF2XTimeTest.cpp wntl.a  $(GMP_OPT_LIBPATH) $(GMP_OPT_LIB) $(LDLIBS)
 
 InitSettings:
 	$(LINK) -o InitSettings InitSettings.cpp  $(LDLIBS)

@@ -30,6 +30,7 @@ typedef ... ZZ_limb_t;
 
 #define NTL_BITS_PER_LIMB_T (...)
 // Integral constant defining the number of bits of ZZ_limb_t.
+// NOTE: this is already defined in ZZ.h.
 
 const ZZ_limb_t * ZZ_limbs_get(const ZZ& a);
 // Get a pointer to the limbs of a (possibly null).

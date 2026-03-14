@@ -374,6 +374,7 @@ void _ntl_ForceToMem(double *p);
 /* This is do-nothing routine that has the effect of forcing
    a double into memory (see comment above). */
 
+
 double _ntl_ldexp(double x, long e);
 
 
@@ -514,9 +515,12 @@ char *_ntl_make_aligned(char *p, long align)
 #define NTL_AVX512_LOCAL_ARRAY(x, type, n) NTL_ALIGNED_LOCAL_ARRAY(NTL_AVX512_BYTE_ALIGN, x, type, n)
 
 
-#define NTL_DEFAULT_ALIGN (64)
+#define NTL_DEFAULT_ALIGN (128)
 // this should be big enough to satisfy any SIMD instructions,
 // and it should also be as big as a cache line
+// x86 has cache line size of 64, while Aarch64 has cache line size of 128
+// The cache line size requirement is not critical for correctness,
+// but can lead to better memory performance
 
 
 
@@ -615,6 +619,11 @@ struct _ntl_enable_if<true, T> {
   typedef T type;
 };
 
+
+// returns x, disabling constant folding
+int _ntl_nofold(int x); 
+long _ntl_nofold(long x); 
+double _ntl_nofold(double x); 
 
 
 

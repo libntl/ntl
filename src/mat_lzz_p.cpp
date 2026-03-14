@@ -8,8 +8,14 @@
 
 
 #ifdef NTL_HAVE_AVX
-#include <immintrin.h>
+#include <NTL/simde_avx.h>
 #endif
+
+
+#ifdef NTL_HAVE_FMA
+#include <NTL/simde_fma.h>
+#endif
+
 
 NTL_START_IMPL
 

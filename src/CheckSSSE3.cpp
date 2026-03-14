@@ -6,6 +6,10 @@
 #include <iostream>
 
 
+// NOTE: SSSE3 is only used for the ChaCha20 random number generator in ZZ.cpp. 
+// While it works, it is no faster (and maybe slightly slower) on AARCH64.
+// So for now SIMDE is not being enabled.
+
 #if (!defined(__GNUC__) || !defined(__x86_64__) || !defined(__SSSE3__))
 #error "SSSE3 not supported"
 #endif
@@ -39,7 +43,7 @@ int main()
    unsigned int x[4];
  
    for (long i = 0; i < 4; i++) {
-      a[i] = atoi("0") + i;
+      a[i] = _ntl_nofold(i);
    }
 
 

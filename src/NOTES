@@ -21,8 +21,14 @@ http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 export COPYFILE_DISABLE=1
 make ppdoc
 make ppclean
-make package
+make package 
 make winpack
+
+NOTE: the COPYFILE_DISABLE business is for macOS -- it prevents
+extra macOS metadata from being placed in a tarball.
+However, this no longer works.
+Install gtar (gnu tar) via homebrew (brew install gnu-tar)
+and run "make package TAR=gtar"
 
 
 

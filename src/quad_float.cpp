@@ -239,10 +239,10 @@ END_FIX
 
 
 // The configure script should ensure that no FMA's are issued
-// fo most compilers (at least gcc, clang, and icc), but if not,
+// for most compilers (at least gcc, clang, and icc), but if not,
 // this is a last ditch effort to fix the problem (which seems to work).
 
-double quad_float_zero = 0;
+volatile double quad_float_zero = 0;
 
 static inline
 double Protect(double x) { return x + quad_float_zero; }

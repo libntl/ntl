@@ -1,7 +1,7 @@
 
 #include <NTL/WordVector.h>
 
-#include <cstdio>
+//#include <cstdio>
 
 NTL_START_IMPL
 

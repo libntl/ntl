@@ -36,15 +36,12 @@ int SmallModulusTest(long p, long n)
    return res;
 }
 
-
-int GF2X_test()
+int GF2X_test_lib() 
 {
+#ifdef NTL_GF2X_LIB
    GF2X a, b, c, c1;
 
-   long n;
-
-#ifdef NTL_GF2X_LIB
-   for (n = 32; n <= (1L << 18); n = n << 1) {
+   for (long n = 32; n <= (1L << 18); n = n << 1) {
       random(a, n);
       random(b, n);
       OldMul(c, a, b);
@@ -54,6 +51,44 @@ int GF2X_test()
 #endif
 
    return 0;
+
+}
+
+void convert(zz_pX& F, const GF2X& f)
+{
+   long df = deg(f);
+   F.SetLength(df+1);
+   for (long i = 0; i <= df; i++) 
+      F[i] = rep(f[i]);
+   F.normalize();
+}
+
+int GF2X_test_native()
+{
+   zz_p::init(2);
+ 
+   zz_pX A, B, C, C1;
+   GF2X a, b, c;
+
+   for (long n = 32; n <= (1L << 18); n = n << 1) {
+      random(a, n);
+      random(b, n);
+      mul(c, a, b);
+
+      convert(A, a);
+      convert(B, b);
+      convert(C, c);
+      mul(C1, A, B);
+      
+      if (C1 != C) return 1;
+   }
+
+   return 0;
+}
+
+int GF2X_test()
+{
+   return GF2X_test_native() && GF2X_test_lib();
 }
 
 void GF2X_time()
@@ -208,6 +243,10 @@ int main()
 
 #ifdef NTL_GF2X_LIB
    cerr << "NTL_GF2X_LIB\n";
+#endif
+
+#ifdef NTL_SIMDE_LIB
+   cerr << "NTL_SIMDE_LIB\n";
 #endif
 
 

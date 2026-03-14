@@ -1,4 +1,4 @@
-#include <NTL/mach_desc.h>
+#include <NTL/ctools.h>
 #include <cstdlib>
 
 using namespace std;
@@ -11,7 +11,7 @@ long CountLeadingZeros(unsigned long x)
 
 int main()
 {
-   unsigned long x = atoi("3");
+   unsigned long x = _ntl_nofold(3);
    if (CountLeadingZeros(x) == NTL_BITS_PER_LONG-2)
       return 0;
    else

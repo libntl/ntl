@@ -2,6 +2,27 @@
 
 use warnings;  # this doesn't work on older versions of perl
 
+#
+#
+# general auxilliary routines
+
+sub Warning {
+
+   my ($s) = @_;
+   printf("\n*** WARNING: \n%s\n\n", $s);
+   return 1;
+}
+
+
+sub RemoveProg {
+# This should work on unix and cygwin on windows
+
+   my ($name) = @_;
+   unlink($name);  unlink("$name.exe");
+   return 1;
+}
+
+
 
 system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 
@@ -9,6 +30,9 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 %MakeFlag = (
 'SHARED'  => 'off',
 'NATIVE'  => 'on',
+'ENABLE_LIBTOOL' => 'off',
+'PREFER_PIC' => 'off',
+'ENABLE_RPATH' => undef
 );
 
 %MakeVal = (
@@ -28,12 +52,14 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 'LDLIBS'      => '-lm',
 'CPPFLAGS'    => '',
 
-'DEF_PREFIX'  => '/usr/local',
+'SYS_PREFIX'  => '/usr/local',
+'DEF_PREFIX'  => '$(SYS_PREFIX)',
 
 'PREFIX'      => '$(DEF_PREFIX)',
 'LIBDIR'      => '$(PREFIX)/lib',
 'INCLUDEDIR'  => '$(PREFIX)/include',
 'DOCDIR'      => '$(PREFIX)/share/doc',
+'PKGDIR'      => '$(PREFIX)/lib/pkgconfig',
 
 'GMP_PREFIX'  => '$(DEF_PREFIX)',
 'GMP_INCDIR'  => '$(GMP_PREFIX)/include',
@@ -104,6 +130,7 @@ system("echo '*** CompilerOutput.log ***' > CompilerOutput.log");
 
 );
 
+%Original = (%MakeVal, %MakeFlag);
 
 %Variable = ();
 
@@ -126,16 +153,16 @@ foreach $arg (@ARGV) {
 
       $Variable{$name} = 0;
       
-      if (exists($MakeFlag{$name}) && ($val =~ 'on|off')) {
-         $MakeFlag{$name} = $val;
+      if (exists($MakeFlag{$name}) && (lc($val) =~ 'on|off')) {
+         $MakeFlag{$name} = lc($val);
          next;
       }
       elsif (exists($MakeVal{$name})) {
          $MakeVal{$name} = $val;
          next;
       }
-      elsif (exists($ConfigFlag{$name}) && ($val =~ 'on|off')) {
-         $ConfigFlag{$name} = $val;
+      elsif (exists($ConfigFlag{$name}) && (lc($val) =~ 'on|off')) {
+         $ConfigFlag{$name} = lc($val);
          next;
       }
       elsif (exists($ConfigVal{$name})) {
@@ -170,19 +197,45 @@ if ($ConfigFlag{'NTL_THREADS'} eq 'off') {
 }
 
 
-# special processing: CXXFLAGS contains '-march=' => NATIVE=off
+# special processing: 
+# CXXFLAGS contains -march=, -mcpu=, or -mtune => NATIVE=off
 
-if ($MakeVal{'CXXFLAGS'} =~ '-march=') {
+if ($MakeVal{'CXXFLAGS'} =~ '-march=|-mcpu=|-mtune=') {
    $MakeFlag{'NATIVE'} = 'off';
 }
 
 
-# some special MakeVal values that are determined by SHARED
+# special pprocessing:  SHARED => ENABLE_LIBTOOL
 
-if ($MakeFlag{'SHARED'} eq 'off') {
+if ($MakeFlag{'SHARED'} eq 'on') {
+   $MakeFlag{'ENABLE_LIBTOOL'} = 'on';
+   $MakeVal{'STAT'} = '#';
+   $MakeVal{'SHAR'} = '';
+}
+else {
+   $MakeVal{'STAT'} = '';
+   $MakeVal{'SHAR'} = '#';
+}
+   
 
-   $MakeVal{'LSTAT'} = '';
-   $MakeVal{'LSHAR'} = '# ';
+# special processing for PREFER_PIC
+
+if ($MakeFlag{'PREFER_PIC'} eq 'on') {
+   $MakeVal{'PPIC'} = '';
+}
+else {
+   $MakeVal{'PPIC'} = '#';
+}
+
+   
+
+
+# some special MakeVal values that are determined by ENABLE_LIBTOOL
+
+if ($MakeFlag{'ENABLE_LIBTOOL'} eq 'off') {
+
+   $MakeVal{'NOLTOOL'} = '';
+   $MakeVal{'LTOOL'} = '#';
 
    if (!defined($MakeVal{'LIBTOOL'})) {
       $MakeVal{'LIBTOOL'} = 'libtool';
@@ -194,8 +247,8 @@ if ($MakeFlag{'SHARED'} eq 'off') {
 
 } else {
 
-   $MakeVal{'LSTAT'} = '# ';
-   $MakeVal{'LSHAR'} = '';
+   $MakeVal{'NOLTOOL'} = '#';
+   $MakeVal{'LTOOL'} = '';
 
    if (!defined($MakeVal{'LIBTOOL'})) {
 
@@ -223,7 +276,7 @@ if ($MakeFlag{'SHARED'} eq 'off') {
 
       print("***** checking for libtool *****\n");
       if (system("$MakeVal{'LIBTOOL'} --version")) {
-	 die "Error: bad libtool ($MakeVal{'LIBTOOL'}) -- try glibtool?";
+	 die "Error: bad libtool ($MakeVal{'LIBTOOL'}) -- try glibtool?\n";
       }
       print("***** libtool OK *****\n\n");
 
@@ -244,9 +297,9 @@ if ($MakeFlag{'SHARED'} eq 'off') {
 
 # special GMP variables
 
-$MakeVal{'GMPI'} = '# ';
-$MakeVal{'GMPL'} = '# ';
-$MakeVal{'GMP'} =  '# ';
+$MakeVal{'GMPI'} = '#';
+$MakeVal{'GMPL'} = '#';
+$MakeVal{'GMP'} =  '#';
 
 if ($ConfigFlag{'NTL_GMP_LIP'} eq 'on') {
    $MakeVal{'GMP'} = '';
@@ -265,9 +318,9 @@ if ($ConfigFlag{'NTL_GMP_LIP'} eq 'on') {
 # special GF2X variables
 
 
-$MakeVal{'GF2XI'} = '# ';
-$MakeVal{'GF2XL'} = '# ';
-$MakeVal{'GF2X'} =  '# ';
+$MakeVal{'GF2XI'} = '#';
+$MakeVal{'GF2XL'} = '#';
+$MakeVal{'GF2X'} =  '#';
 
 
 if ($ConfigFlag{'NTL_GF2X_LIB'} eq 'on') {
@@ -284,14 +337,64 @@ if ($ConfigFlag{'NTL_GF2X_LIB'} eq 'on') {
    }
 }
 
+# special variable to used just to generate USER_MAKEFILE.txt
 
+$MakeVal{'NTLL'} = '#';
+if (exists($Variable{'DEF_PREFIX'}) ||
+    exists($Variable{'PREFIX'}) ||
+    exists($Variable{'LIBDIR'})) {
+   $MakeVal{'NTLL'} = '';
+}
+
+$MakeVal{'NTLI'} = '#';
+if (exists($Variable{'DEF_PREFIX'}) ||
+    exists($Variable{'PREFIX'}) ||
+    exists($Variable{'INCLUDEDIR'})) {
+   $MakeVal{'NTLI'} = '';
+}
+
+# test if we should use RPATH stuff
+# if ENABLE_RPATH is explicitly set, we use it according whether that is on or off
+# otherwise, we use it if 
+#     we are not on macOS (we seem to need it) and either
+#        using GMP in a non-default lib location,
+#        using GF2X in a non-default lib location, or
+#        installing a shared NTL in a non-default location (mainly useful just for USER_MAKEFILE.txt)
+
+if (!defined($MakeFlag{'ENABLE_RPATH'})) {
+
+   if ($^O ne 'darwin' &&
+         ($MakeVal{'GMPL'} eq '' || $MakeVal{'GF2XL'} eq '' || 
+            ($MakeVal{'NTLL'} eq '' && $MakeFlag{'SHARED'} eq 'on'))) {
+
+      $MakeFlag{'ENABLE_RPATH'} = 'on';
+
+   }
+   else {
+
+      $MakeFlag{'ENABLE_RPATH'} = 'off';
+   }
+
+}
+
+
+
+
+
+#################################################
 # copy %MakeVal and %MakeFlag as is into %MakeSub
+#################################################
+
+
 
 %MakeSub = (%MakeVal, %MakeFlag);
 
 
-# copy %ConfigFlag into %ConfigSub, substituting 0 for off and 1 of on
 
+
+######################################################################
+# copy %ConfigFlag into %ConfigSub, substituting 0 for off and 1 of on
+######################################################################
 
 %ConfigSub = ( );
 
@@ -358,31 +461,11 @@ if ($ConfigSub{'NTL_ENABLE_AVX_FFT'} == 1 && $MakeSub{'TUNE'} eq 'auto') {
 
 #
 #
-# useful auxilliary routines
-
-sub Warning {
-
-   my ($s) = @_;
-   printf("\n*** WARNING: \n%s\n\n", $s);
-   return 1;
-}
-
-
-sub RemoveProg {
-# This should work on unix and cygwin on windows
-
-   my ($name) = @_;
-   unlink($name);  unlink("$name.exe");
-   return 1;
-}
-
-sub RemoveFile {
-   my ($name) = @_;
-   unlink($name);  
-   return 1;
-}
+# more auxilliary routines
 
 sub GenFiles {
+
+# generate makefile
 
    open(MFILE, "< mfile");
    open(MFILEOUT, "> mfileout");
@@ -394,11 +477,10 @@ sub GenFiles {
       print MFILEOUT $line;
    
    }
-   
+
    close(MFILE);
    close(MFILEOUT);
-   
-   
+
    # generate config.h
    
    
@@ -416,10 +498,20 @@ sub GenFiles {
    close(CFILE);
    close(CFILEOUT);
 
+# generate USER_MAKEFILE.txt
+   
+   system("$MakeVal{'MAKE_PROG'} -f mfileout user_makefile > umfileout");
+
+# generate ntl.pc file
+   
+   system("$MakeVal{'MAKE_PROG'} -f mfileout  pkg_config > pkgfileout");
+
+# generate CONFIG_LOG.txt
+
    open(HFILEOUT, "> hfileout");
    $argstr = join(' ', @ARGV);
-   print HFILEOUT "#if 0\n";
-   print HFILEOUT "generated by ./configure $argstr\n\n"; 
+   print HFILEOUT "generated by:\n./configure $argstr\n\n"; 
+
 
    my @flag = ("off", "on");
 
@@ -439,15 +531,15 @@ sub GenFiles {
 
    print HFILEOUT "\n";
 
-   foreach $name (sort keys %MakeSub) {
+   foreach $name (sort keys %Original) {
       print HFILEOUT "$name=\"$MakeSub{$name}\"\n";
    }
    #print HFILEOUT "CXXFLAGS=\"$MakeSub{'CXXFLAGS'}\"\n";
    #print HFILEOUT "CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n";
    #print HFILEOUT "NOCONTRACT=\"$MakeSub{'NOCONTRACT'}\"\n";
 
-   print HFILEOUT "#endif\n";
    close(HFILEOUT);
+
    
    
    return 1;
@@ -455,9 +547,13 @@ sub GenFiles {
 
 sub CopyFiles {
 
-   system("cp mfileout makefile") and die "Error: CopyFile failed";
-   system("cp cfileout ../include/NTL/config.h") and die "Error: CopyFile failed";;
-   system("cp hfileout ../include/NTL/ConfigLog.h") and die "Error: CopyFile failed";
+   system("cp mfileout makefile") and die "Error: CopyFile failed\n";
+   system("cp cfileout ../include/NTL/config.h") and die "Error: CopyFile failed\n";
+   system("cp hfileout ../include/NTL/CONFIG_LOG.txt") and die "Error: CopyFile failed\n";
+   system("cp umfileout ../include/NTL/USER_MAKEFILE.txt") and die "Error: CopyFile failed\n";
+   system("mkdir -p ../lib/pkgconfig") and die "Error: CopyFile failed\n";
+   system("cp pkgfileout ../lib/pkgconfig/ntl.pc") and die "Error: CopyFile failed\n";
+
 
    return 1;
 }
@@ -541,6 +637,14 @@ elsif ($min_std) {
    $ConfigSub{'NTL_STD_CXX11'} = 1;
 }
 
+# set initial value for RPATH related stuff
+# this is all just to make sure we link to the right versions
+# of GMP during the build process
+$MakeSub{'TESTRPATH'} = '';  # empty except when checking lW,-rpath,. arg
+$MakeSub{'RPATH'} = '#'; # empty when rpath enabled 
+
+
+
 
 sub Process_TUNE {
    # special processing for TUNE --- WIZARD gets set here as well
@@ -596,8 +700,8 @@ sub Process_TUNE {
 	 $ConfigSub{'NTL_GF2X_ALTCODE'}        = 0,
 	 $ConfigSub{'NTL_GF2X_ALTCODE1'}       = 0,
       }
-      else {
-	 die "Error: TUNE not in {auto,generic,x86,linux-s390x}";
+      elsif ($MakeSub{'TUNE'} ne 'off') {
+	 die "Error: TUNE not in {auto,generic,x86,linux-s390x,off}\n";
       }
    }
 }
@@ -609,9 +713,22 @@ Process_TUNE();
 # and the architecture is recognized (right now, only
 # x86 and s390x are recognized)
 
+if ($^O eq 'darwin') {
+   $MakeSub{'DARWIN'} = '';
+   $MakeSub{'NODARWIN'} = '#';
+}
+else {
+   $MakeSub{'DARWIN'} = '#';
+   $MakeSub{'NODARWIN'} = '';
+}
 
 
-#########################################
+
+
+
+################################################################
+# By this point, all of the MakeSub variables need to be defined
+################################################################
 
 if ($nowrite) {
    GenFiles();
@@ -628,12 +745,13 @@ unlink "need-to-run-configure";
 
 
 #get some rudimentary info from compiler
-# language_standard: one of 0, 1997, 2011, 2014, 2017.
+# language_standard: one of 0, 1997, 2011, 2014, 2017, ...
 #   used to set -std= flag intelligently
-# cpu_type: one of x86, s390x, unknown
+# cpu_type: one of x86, arm, s390x, unknown
 #   used to set TUNE intelligently
 # compiler_name: one of gcc, clang, icc, unknown
 #   used to set floating point flags intelligently
+# os_name: one of linux, unknown
 GenFiles();
 CopyFiles();
 RemoveProg("GenConfigInfo");
@@ -642,14 +760,14 @@ system("echo '*** building GenConfigInfo' >> CompilerOutput.log");
 if(system("$MakeSub{'MAKE_PROG'} GenConfigInfo >> CompilerOutput.log 2>&1")) { 
    print("Compilation failed\n");
    print("See CompilerOutput.log for details\n");
-   die "Goodbye!";
+   die "Goodbye!\n";
 }
 
 my $config_info = `./GenConfigInfo`;
 
 my ($compiler_name, $language_standard, $cpu_type, $os_name);
 ($compiler_name, $language_standard, $cpu_type, $os_name) =
-   ($config_info =~ /\((.*?),(.*?),(.*?),(.*?)\)/) or die "Error: GenConfigInfo failed";
+   ($config_info =~ /\((.*?),(.*?),(.*?),(.*?)\)/) or die "Error: GenConfigInfo failed\n";
 
 # convert to number
 $language_standard += 0 or Warning("__cplusplus not correctly defined");
@@ -658,8 +776,6 @@ print("compiler_name=$compiler_name\n");
 print("language_standard=$language_standard\n");
 print("cpu_type=$cpu_type\n");
 print("os_name=$os_name\n\n");
-
-
 
 if (!exists($Variable{'TUNE'})) {
    if ($cpu_type eq "x86") {
@@ -676,40 +792,70 @@ if (!exists($Variable{'TUNE'})) {
 }
 
 
+# test if RPATH stuff works if using GMP or GF2X at a nonstandard location
+# or of we are installing at a nonstandard location and we are building a shared library
+# (this last is only needed to build USER_MAKEFILE.txt)
+# note that on macOS, we do not need to use RPATH
+
+
+
+if ($MakeSub{'ENABLE_RPATH'} eq 'on') {
+
+   $MakeSub{'TESTRPATH'} = '-Wl,-rpath,.';
+   if (!CheckCompile()) {
+
+      Warning("-Wl,-rpath not working -- it is possible that some shared libs will not link correctly");
+      # this is just a warning, as it may not be a dealbreaker if this doesn't work
+   }
+   else {
+      print "*** using rpath\n";
+      $MakeSub{'RPATH'} = ''; # this will enable RPATH in the makefile
+   }
+   $MakeSub{'TESTRPATH'} = '';
+}
+else {
+   print "*** rpath not needed\n";
+}
+      
+
+#logic to set CXXAUTOFLAGS
 
 if (exists($Variable{'CXXAUTOFLAGS'})) {
    print("CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n");
-   GenFiles();
-   CopyFiles();
-   exit 0;
 }
+else {
 
 
+   if ($min_std >= 2014) {
+      if ($language_standard < 2014) { CheckFlag('-std=c++14'); }
+   }
+   elsif ($min_std >= 2011) {
+      if ($language_standard < 2011) { CheckFlag('-std=c++11'); }
+   }
 
-if ($min_std >= 2014) {
-   if ($language_standard < 2014) { CheckFlag('-std=c++14'); }
-}
-elsif ($min_std >= 2011) {
-   if ($language_standard < 2011) { CheckFlag('-std=c++11'); }
-}
+   if ($pthread_flag) {
+      CheckFlag('-pthread');
+   }
+      
+   if ($native_flag) {
+      if ($cpu_type eq "arm") {
+         CheckFlag('-mcpu=native');
+      }
+      else {
+         CheckFlag('-march=native');
+      }
+   }
 
-if ($pthread_flag) {
-   CheckFlag('-pthread');
-}
-   
-if ($native_flag) {
-   CheckFlag('-march=native');
-}
+   # disable floating-point optimizations that are not value safe
+   # for most compilers, the default at optimzation  '-O2' is to 
+   # disable such optimizations. icc is the big exception,
+   # so we compile all of NTL with the "-fp-model precise" flag.
+   # On older IA-32 machines, this also has the effect of preventing
+   # calculations in "extended double" precision.
 
-# disable floating-point optimizations that are not value safe
-# for most compilers, the default at optimzation  '-O2' is to 
-# disable such optimizations. icc is the big exception,
-# so we compile all of NTL with the "-fp-model precise" flag.
-# On older IA-32 machines, this also has the effect of preventing
-# calculations in "extended double" precision.
-
-if ($compiler_name eq 'icc') {
-   CheckFlag('-fp-model precise');
+   if ($compiler_name eq 'icc') {
+      CheckFlag('-fp-model precise');
+   }
 }
 
 
@@ -779,18 +925,30 @@ if ($ConfigSub{'NTL_THREADS'}) {
       print "*** threads are OK \n";
    }
    else {
-      if ($ConfigSub{'NTL_TLS_HACK'} == 0) { die "Error: threads are broken"; }
+      if ($ConfigSub{'NTL_TLS_HACK'} == 0) { die "Error: threads are broken\n"; }
       $ConfigSub{'NTL_TLS_HACK'} = 0;
       if (CheckThreads()) {
          print "*** threads are OK with NTL_TLS_HACK=off\n";
       }
       else {
-         die "Error: threads are broken";
+         die "Error: threads are broken\n";
       }
    }
 
 }
 
+# quick check to see if GMP is working
+# more careful checks are done in gen_gmp_aux later in the build process
+
+sub CheckGMP {
+   return Exec("CheckGMP");
+}
+
+if ($ConfigSub{'NTL_GMP_LIP'}) {
+   if (!CheckGMP()) {
+         die "Error: NTL_GMP_LIP set but GMP not available -- set DEF_PREFIX or GMP_PREFIX to point to location of GMP\n";
+   }
+}
 
 
 
@@ -802,7 +960,7 @@ unlink "setup-phase";
 # This will force make to run the setup phase
 
 system("touch need-to-run-configure") 
-   and die "Error: could not create need-to-run-configure";
+   and die "Error: could not create need-to-run-configure\n";
 
 print("\n");
 print("CXXAUTOFLAGS=\"$MakeSub{'CXXAUTOFLAGS'}\"\n");
@@ -810,7 +968,9 @@ print("NOCONTRACT=\"$MakeSub{'NOCONTRACT'}\"\n");
 print("\n");
 print("generated makefile\n");
 print("generated ../include/NTL/config.h\n");
-print("generated ../include/NTL/ConfigLog.h\n");
+print("generated ../include/NTL/CONFIG_LOG.txt\n");
+print("generated ../include/NTL/USER_MAKEFILE.txt\n");
+print("generated ../lib/pkgconfig/ntl.pc\n");
 exit 0;
 
 
