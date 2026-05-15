@@ -52,3 +52,24 @@ config_h = configure_file(
     install: true,
     install_dir: get_option('includedir') / 'NTL',
 )
+
+# ALL_FEATURES.h #includes NTL/HAVE_<feature>.h for 16 features. The
+# Makefile build generates these via MakeCheckFeatures (which compiles
+# and runs Check<feature>.cpp probes — not cross-compile-safe). For MVP
+# we emit empty stubs (every feature absent). A compile-time probing
+# pass via cc.compiles() is a polish-phase follow-up.
+have_headers = [
+    'HAVE_ALIGNED_ARRAY.h', 'HAVE_BUILTIN_CLZL.h', 'HAVE_LL_TYPE.h',
+    'HAVE_SSSE3.h', 'HAVE_AVX.h', 'HAVE_PCLMUL.h',
+    'HAVE_AVX2.h', 'HAVE_FMA.h', 'HAVE_AVX512F.h',
+    'HAVE_COPY_TRAITS1.h', 'HAVE_COPY_TRAITS2.h',
+    'HAVE_CHRONO_TIME.h', 'HAVE_MACOS_TIME.h', 'HAVE_POSIX_TIME.h',
+    'HAVE_AES_NI.h', 'HAVE_KMA.h',
+]
+have_target = custom_target('have-headers',
+    output: have_headers,
+    command: [python, files('../meson/gen-have-headers.py'),
+              meson.current_build_dir()],
+    install: true,
+    install_dir: get_option('includedir') / 'NTL',
+)

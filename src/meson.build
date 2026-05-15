@@ -175,10 +175,11 @@ if use_threads
     library_deps += [threads_dep]
 endif
 
-# Build the library. The generated headers (mach_desc.h, gmp_aux.h, config.h)
-# are listed as sources so Meson schedules them before any .cpp compilation.
+# Build the library. The generated headers (mach_desc.h, gmp_aux.h, config.h,
+# HAVE_*.h) are listed as sources so Meson schedules them before any .cpp
+# compilation.
 libntl = library('ntl',
-    library_sources + [mach_desc_h, gmp_aux_writer, config_h],
+    library_sources + [mach_desc_h, gmp_aux_writer, config_h, have_target],
     include_directories: [ntl_inc, include_directories('.')],
     dependencies: library_deps,
     cpp_args: ['-DNTL_BUILD'],
@@ -212,7 +213,7 @@ ntl_test_dep = declare_dependency(
     # Generated headers must exist before any consumer .cpp compiles.
     # Listing them as `sources` of the dependency makes Meson schedule
     # the generator targets first.
-    sources: [mach_desc_h, gmp_aux_writer, config_h],
+    sources: [mach_desc_h, gmp_aux_writer, config_h, have_target],
 )
 
 # Translation of exec_mode → Meson `should_run` and exe_wrapper handling.
