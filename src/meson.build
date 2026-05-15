@@ -111,7 +111,12 @@ cfg.set('NTL_FFT_BIGTAB',          0)
 cfg.set('NTL_FFT_LAZYMUL',         0)
 cfg.set('NTL_AVOID_BRANCHING',     0)
 cfg.set('NTL_TBL_REM',             0)
-cfg.set('NTL_CRT_ALTCODE',         0)
+# NTL_CRT_ALTCODE: activates _ntl_crt_struct_tbl in lip.cpp — a table-
+# driven CRT path that's faster on x86 and only viable when LL_TYPE is
+# available with NTL_BITS_PER_LIMB_T == NTL_BITS_PER_LONG. The Makefile
+# build's `./configure` enables this by default on x86; mirror that
+# heuristic via the ABI table's x86_specializations field.
+cfg.set('NTL_CRT_ALTCODE',         (abi['x86_specializations'] == 'true') ? 1 : 0)
 cfg.set('NTL_CRT_ALTCODE_SMALL',   0)
 cfg.set('NTL_GF2X_ALTCODE',        0)
 cfg.set('NTL_GF2X_ALTCODE1',       0)
