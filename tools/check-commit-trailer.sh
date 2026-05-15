@@ -36,14 +36,26 @@ for sha in $commits; do
     msg=$(git log -1 --pretty=%B "$sha")
     short=$(git log -1 --pretty='%h %s' "$sha")
 
+    # `Co-Authored-By:` must not appear as a line-anchored trailer. We
+    # check for the pattern at the start of any line so it isn't fooled
+    # by quoted prose discussing the rule itself.
     if echo "$msg" | grep -qiE '^Co-Authored-By:'; then
         echo "FAIL: $short has a forbidden Co-Authored-By: trailer" >&2
         violations=$((violations + 1))
     fi
-    if echo "$msg" | grep -qiE 'Generated with \[Claude Code\]'; then
+
+    # The marketing tag emitted by older Claude Code versions is
+    # `🤖 Generated with [Claude Code](https://claude.com/claude-code)`,
+    # appearing as its own line. We anchor the regex to line-start so it
+    # doesn't trip on prose that mentions the forbidden form (e.g. the
+    # commit message that introduces this very check).
+    if echo "$msg" | grep -qE '^(.*🤖 )?Generated with \[Claude Code\]'; then
         echo "FAIL: $short includes the 'Generated with [Claude Code]' marketing tag" >&2
         violations=$((violations + 1))
     fi
+
+    # AI-Assisted trailer must appear (anywhere in the message — but
+    # conventionally at the end).
     if ! echo "$msg" | grep -qE '^AI-Assisted: Claude '; then
         echo "FAIL: $short is missing the required AI-Assisted trailer" >&2
         violations=$((violations + 1))
