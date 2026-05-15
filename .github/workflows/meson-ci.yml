@@ -38,7 +38,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]  # Extended in Phases 6 / 7: add macos-13, macos-latest, windows-latest.
+        os:
+          - ubuntu-latest
+          - macos-13       # Phase 6 (US4): Intel macOS native build.
+          - macos-latest   # Phase 6 (US4): Apple Silicon macOS native build.
+          # Phase 7 (US5) will add windows-latest with msys2 + MinGW-w64.
+          # Disabled until the workflow's msys2 setup is exercised; see
+          # the placeholder step below.
     steps:
       - uses: actions/checkout@v4
 
@@ -133,12 +139,25 @@ jobs:
       fail-fast: false
       matrix:
         triplet:
+          # Phase 4 (US2, P1): apt-installable cross-toolchains.
           - i686-linux-gnu
-          # x86_64-linux-musl is wired but disabled until a musl-cross
-          # toolchain is selected in the workflow. Re-enable once Phase 4
-          # T042 follow-up picks a toolchain source (musl-cross-make,
-          # zig cc, Alpine container, etc.).
-          # - x86_64-linux-musl
+          # Phase 5 (US3, P2): aarch64 / armv7 / ppc64le via apt cross.
+          - aarch64-linux-gnu
+          - powerpc64le-linux-gnu
+          # Phase 8 (US6, P3, best-effort): RISC-V via apt cross.
+          - riscv64-linux-gnu
+          # Phase 7 (US5, P3): MinGW-w64 cross from Linux.
+          - x86_64-w64-mingw32
+          - i686-w64-mingw32
+          #
+          # The following triplets are wired but not yet enabled in the
+          # matrix. Each is unblocked by selecting a toolchain source:
+          #   x86_64-linux-musl, aarch64-linux-musl: musl-cross-make /
+          #     zig cc / Alpine cross.
+          #   armv7l-linux-gnueabihf-musl: musl-cross-make.
+          #   x86_64-apple-darwin, aarch64-apple-darwin: osxcross /
+          #     BinaryBuilder SDK (license-gated).
+          #   x86_64-unknown-freebsd: cached FreeBSD sysroot + clang.
     steps:
       - uses: actions/checkout@v4
 
@@ -151,15 +170,45 @@ jobs:
       - name: Install cross-toolchain for ${{ matrix.triplet }}
         run: |
           set -eu
+          sudo apt-get install -y --no-install-recommends qemu-user-static
           case "${{ matrix.triplet }}" in
             i686-linux-gnu)
               sudo apt-get install -y --no-install-recommends \
-                gcc-i686-linux-gnu g++-i686-linux-gnu \
-                qemu-user-static
-              # GMP for the i686 target via multiarch.
+                gcc-i686-linux-gnu g++-i686-linux-gnu
               sudo dpkg --add-architecture i386
               sudo apt-get update
               sudo apt-get install -y --no-install-recommends libgmp-dev:i386
+              ;;
+            aarch64-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+              sudo dpkg --add-architecture arm64
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgmp-dev:arm64
+              ;;
+            powerpc64le-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
+              sudo dpkg --add-architecture ppc64el
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgmp-dev:ppc64el
+              ;;
+            riscv64-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
+              sudo dpkg --add-architecture riscv64
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgmp-dev:riscv64
+              ;;
+            x86_64-w64-mingw32)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 wine wine64
+              # GMP for MinGW is not in apt; the cross-build will run
+              # with -Dgmp=disabled until a sysroot-based GMP is added.
+              ;;
+            i686-w64-mingw32)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-mingw-w64-i686 g++-mingw-w64-i686 wine
               ;;
             *)
               echo "ERROR: no install recipe for ${{ matrix.triplet }}" >&2
@@ -169,8 +218,16 @@ jobs:
 
       - name: Configure
         run: |
+          extra=()
+          case "${{ matrix.triplet }}" in
+            *-w64-mingw32)
+              # MinGW GMP isn't installed via apt; disable GMP for now.
+              extra+=( -Dgmp=disabled )
+              ;;
+          esac
           meson setup \
             --cross-file=ci/cross-files/${{ matrix.triplet }}.txt \
+            "${extra[@]}" \
             build
 
       - name: Compile (build step REQUIRED — no continue-on-error)
@@ -187,21 +244,37 @@ jobs:
         run: |
           set -eu
           case "${{ matrix.triplet }}" in
-            i686-linux-gnu)
+            i686-linux-gnu|i686-w64-mingw32)
               expected='80386'
+              ;;
+            x86_64-linux-gnu|x86_64-linux-musl|x86_64-w64-mingw32|x86_64-apple-darwin|x86_64-unknown-freebsd)
+              expected='x86-64'
+              ;;
+            aarch64-linux-gnu|aarch64-linux-musl|aarch64-apple-darwin)
+              expected='aarch64'
+              ;;
+            armv7l-linux-gnueabihf-musl)
+              expected='ARM'
+              ;;
+            powerpc64le-linux-gnu)
+              expected='PowerPC'
+              ;;
+            riscv64-linux-gnu)
+              expected='RISC-V'
               ;;
             *)
               expected=''
               ;;
           esac
-          libntl=$(find build -name 'libntl.so*' -type f | head -1)
+          libntl=$(find build \( -name 'libntl.so*' -o -name 'libntl-*.dll' -o -name 'libntl*.dylib' \) -type f | head -1)
           if [ -z "$libntl" ]; then
-            echo "ERROR: libntl.so was not produced" >&2
+            echo "ERROR: libntl artifact was not produced" >&2
+            find build -name 'libntl*' >&2 || true
             exit 1
           fi
           file "$libntl"
           if [ -n "$expected" ] && ! file "$libntl" | grep -q "$expected"; then
-            echo "ERROR: libntl.so is not the expected architecture" >&2
+            echo "ERROR: libntl artifact does not match expected '$expected'" >&2
             exit 1
           fi
 

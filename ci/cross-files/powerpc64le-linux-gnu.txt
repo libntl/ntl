@@ -1,0 +1,18 @@
+# Cross-file for powerpc64le-linux-gnu.
+# Toolchain: Debian/Ubuntu's gcc-powerpc64le-linux-gnu / -g++.
+
+[binaries]
+c          = 'powerpc64le-linux-gnu-gcc'
+cpp        = 'powerpc64le-linux-gnu-g++'
+ar         = 'powerpc64le-linux-gnu-ar'
+strip      = 'powerpc64le-linux-gnu-strip'
+pkg-config = 'powerpc64le-linux-gnu-pkg-config'
+exe_wrapper = ['qemu-ppc64le-static']
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'ppc64'
+cpu        = 'ppc64le'
+endian     = 'little'
+
+[properties]

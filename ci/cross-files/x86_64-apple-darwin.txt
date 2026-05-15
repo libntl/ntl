@@ -1,0 +1,22 @@
+# Cross-file for x86_64-apple-darwin (Intel macOS).
+# Toolchain: BinaryBuilder / osxcross. The exact binary names depend on
+# which toolchain is installed; the names below match osxcross's
+# x86_64-apple-darwin*-{clang,clang++} convention.
+#
+# This is a cross-only target from Linux: there is no convenient
+# user-mode emulator for Mach-O binaries. Tests run on real macOS
+# hardware via the native CI job.
+
+[binaries]
+c    = 'x86_64-apple-darwin-clang'
+cpp  = 'x86_64-apple-darwin-clang++'
+ar   = 'x86_64-apple-darwin-ar'
+strip = 'x86_64-apple-darwin-strip'
+
+[host_machine]
+system     = 'darwin'
+cpu_family = 'x86_64'
+cpu        = 'x86_64'
+endian     = 'little'
+
+[properties]

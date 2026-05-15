@@ -1,0 +1,20 @@
+# Cross-file for x86_64-w64-mingw32 (64-bit Windows via MinGW-w64).
+# Toolchain: Debian/Ubuntu's g++-mingw-w64-x86-64. Test execution via
+# wine64. MSVC is intentionally out of scope; native Windows CI uses
+# MinGW-w64 from msys2.
+
+[binaries]
+c           = 'x86_64-w64-mingw32-gcc'
+cpp         = 'x86_64-w64-mingw32-g++'
+ar          = 'x86_64-w64-mingw32-ar'
+strip       = 'x86_64-w64-mingw32-strip'
+windres     = 'x86_64-w64-mingw32-windres'
+exe_wrapper = ['wine64']
+
+[host_machine]
+system     = 'windows'
+cpu_family = 'x86_64'
+cpu        = 'x86_64'
+endian     = 'little'
+
+[properties]
