@@ -18,9 +18,15 @@ expected="$3"
 tmp_out=$(mktemp)
 trap 'rm -f "$tmp_out"' EXIT
 
-if ! "$prog" < "$input" > "$tmp_out" 2>&1; then
-    echo "FAIL: $prog exited non-zero. Output:" >&2
-    cat "$tmp_out" >&2
+# NTL's TestScript captures only stdout for the diff. Progress / timing
+# output goes to stderr and is excluded from the comparison; we mirror
+# that by redirecting only stdout to $tmp_out and letting stderr stream
+# through to the meson test log (handy for diagnosing real failures).
+tmp_err=$(mktemp)
+trap 'rm -f "$tmp_out" "$tmp_err"' EXIT
+if ! "$prog" < "$input" > "$tmp_out" 2> "$tmp_err"; then
+    echo "FAIL: $prog exited non-zero. Stderr:" >&2
+    cat "$tmp_err" >&2
     exit 1
 fi
 
