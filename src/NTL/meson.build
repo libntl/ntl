@@ -61,30 +61,25 @@ if cpp.compiles(
     have_extra_args += ['--present', 'BUILTIN_CLZL']
 endif
 
-# ALIGNED_ARRAY: C++11 alignas/alignof. Required by C++11; assume
-# present when cpp_std=c++11+.
-have_extra_args += ['--present', 'ALIGNED_ARRAY']
+# ALIGNED_ARRAY is intentionally NOT enabled. NTL's _ntl_make_aligned
+# implementation casts char* through NTL_UPTRINT_T, which is
+# unsigned long unless NTL_BIG_POINTERS is set in mach_desc.h. On
+# LLP64 targets like x86_64-w64-mingw32, long is 32-bit and pointers
+# are 64-bit — the cast loses precision. NTL_BIG_POINTERS detection is
+# driven by MakeDesc running on the build host, which sees the build
+# host's pointer/long relationship, not the target's. Until we plumb
+# target-specific NTL_BIG_POINTERS via the ABI table, ALIGNED_ARRAY
+# stays off to keep the build correct on cross-LLP64 targets.
 
-# POSIX_TIME: clock_gettime, monotonic clock. Present on Linux,
-# Darwin, FreeBSD; absent on bare Windows (MinGW has it via winpthreads).
-if cpp.has_header_symbol('time.h', 'CLOCK_MONOTONIC')
-    have_extra_args += ['--present', 'POSIX_TIME']
-endif
+# POSIX_TIME, MACOS_TIME: build-time time-source probes. Intentionally
+# not enabled — would need bootstrapping through ctools.h which itself
+# depends on mach_desc.h. A polish-phase follow-up adds these via
+# header-only probes that bypass ctools.h.
 
-# MACOS_TIME: mach_absolute_time. Darwin only.
-if cpp.has_header('mach/mach_time.h')
-    have_extra_args += ['--present', 'MACOS_TIME']
-endif
-
-# COPY_TRAITS2: __has_trivial_copy SFINAE form, older GCC. Modern
-# compilers also support it. cc.compiles() probe matches NTL's
-# CheckCOPY_TRAITS2.cpp's bare-essential check.
-if cpp.compiles(
-    '#include <type_traits>\nint main(void) { return __has_trivial_copy(int) ? 0 : 0; }',
-    name: 'compiler has __has_trivial_copy',
-)
-    have_extra_args += ['--present', 'COPY_TRAITS2']
-endif
+# COPY_TRAITS2 is intentionally NOT enabled. NTL's NTL_SAFE_VECTORS
+# code path uses COPY_TRAITS1 when both are available; enabling
+# COPY_TRAITS2 in addition would force the older SFINAE-based form
+# which trips on certain modern compilers' strict template handling.
 
 have_headers = [
     'HAVE_ALIGNED_ARRAY.h', 'HAVE_BUILTIN_CLZL.h', 'HAVE_LL_TYPE.h',
