@@ -23,6 +23,7 @@ cpu        = 'i686'
 endian     = 'little'
 
 [properties]
+needs_exe_wrapper = true
 # In-source ABI table (src/meson/abi-tables/i686-linux-gnu.ini) supplies
 # the full set of required keys; this section is intentionally empty.
 # Override individual keys here if you need to deviate (e.g. set

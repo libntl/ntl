@@ -18,3 +18,4 @@ cpu        = 'i686'
 endian     = 'little'
 
 [properties]
+needs_exe_wrapper = true

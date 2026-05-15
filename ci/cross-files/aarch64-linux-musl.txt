@@ -16,3 +16,4 @@ cpu        = 'aarch64'
 endian     = 'little'
 
 [properties]
+needs_exe_wrapper = true

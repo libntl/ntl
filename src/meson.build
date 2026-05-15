@@ -209,6 +209,10 @@ ntl_test_dep = declare_dependency(
     link_with: libntl,
     include_directories: [ntl_inc, include_directories('.')],
     dependencies: library_deps,
+    # Generated headers must exist before any consumer .cpp compiles.
+    # Listing them as `sources` of the dependency makes Meson schedule
+    # the generator targets first.
+    sources: [mach_desc_h, gmp_aux_writer, config_h],
 )
 
 # Translation of exec_mode → Meson `should_run` and exe_wrapper handling.

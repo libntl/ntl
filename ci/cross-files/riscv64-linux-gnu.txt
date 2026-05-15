@@ -15,3 +15,4 @@ cpu        = 'riscv64'
 endian     = 'little'
 
 [properties]
+needs_exe_wrapper = true

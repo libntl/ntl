@@ -16,3 +16,4 @@ cpu        = 'ppc64le'
 endian     = 'little'
 
 [properties]
+needs_exe_wrapper = true
