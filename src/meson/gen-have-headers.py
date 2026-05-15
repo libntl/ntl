@@ -5,24 +5,19 @@ include/NTL/ALL_FEATURES.h.
 NTL's Makefile build runs MakeCheckFeatures, which compiles+executes a
 Check<feature>.cpp probe for each feature and writes either an empty
 HAVE_<feature>.h (feature absent) or a non-empty one defining
-`NTL_HAVE_<feature>` (feature present). The probes require executing
-target binaries, which is not safe in cross mode.
+`NTL_HAVE_<feature>` (feature present).
 
-For MVP we:
-  - Emit a populated header (defining `NTL_HAVE_<FEATURE>`) for features
-    we know are present given the spec's C++11 minimum and the standard
-    library it implies. COPY_TRAITS1 (std::is_trivially_copyable) and
-    CHRONO_TIME (std::chrono) are the load-bearing ones — NTL's
-    NTL_SAFE_VECTORS mode is broken without COPY_TRAITS1.
-  - Emit an empty stub for every other feature (= absent). NTL's source
-    code degrades to portable fallback paths in that case.
-
-A polish-phase follow-up will replace the hardcoded "always present"
-list with `cc.compiles()` probes per-feature so each build gets the
-optimal set for its target.
+Meson's compile-time probes (cc.compiles(), cc.has_type(), …) cover
+most of these features in a cross-compile-safe way; the results are
+passed to this script as `--present <feature>` arguments. Features
+NOT listed via --present are emitted as empty stubs (= absent),
+matching MakeCheckFeatures' fallback behavior. Features assumed
+unconditionally present (COPY_TRAITS1 / CHRONO_TIME — required by
+NTL_SAFE_VECTORS' constexpr trait machinery on C++11 builds) are
+hardcoded.
 
 Usage:
-    gen-have-headers.py <output-directory>
+    gen-have-headers.py <output-directory> [--present <feature>]...
 """
 
 from __future__ import annotations
@@ -52,11 +47,11 @@ ALL_FEATURES = [
     "KMA",
 ]
 
-# Features assumed present on any C++11-conformant build of NTL.
+# Features assumed unconditionally present on any C++11-conformant build.
 # COPY_TRAITS1: std::is_trivially_copyable — load-bearing for
 # NTL_SAFE_VECTORS' constexpr relocatability traits.
 # CHRONO_TIME: std::chrono — used by the build's GetTime5.cpp.
-PRESENT_FEATURES = {"COPY_TRAITS1", "CHRONO_TIME"}
+ALWAYS_PRESENT = {"COPY_TRAITS1", "CHRONO_TIME"}
 
 
 def header_body(feature: str, present: bool) -> str:
@@ -70,13 +65,28 @@ def header_body(feature: str, present: bool) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: gen-have-headers.py <outdir>", file=sys.stderr)
+    if len(sys.argv) < 2:
+        print(
+            "usage: gen-have-headers.py <outdir> [--present <feature>]...",
+            file=sys.stderr,
+        )
         return 2
     out_dir = Path(sys.argv[1])
+    extra_present: set[str] = set()
+    i = 2
+    while i < len(sys.argv):
+        if sys.argv[i] == "--present" and i + 1 < len(sys.argv):
+            extra_present.add(sys.argv[i + 1])
+            i += 2
+        else:
+            print(f"unrecognized argument: {sys.argv[i]}", file=sys.stderr)
+            return 2
+
+    present_set = ALWAYS_PRESENT | extra_present
+
     out_dir.mkdir(parents=True, exist_ok=True)
     for feat in ALL_FEATURES:
-        present = feat in PRESENT_FEATURES
+        present = feat in present_set
         (out_dir / f"HAVE_{feat}.h").write_text(
             header_body(feat, present), encoding="utf-8"
         )

@@ -37,9 +37,55 @@ config_h = configure_file(
 
 # ALL_FEATURES.h #includes NTL/HAVE_<feature>.h for 16 features. The
 # Makefile build generates these via MakeCheckFeatures (which compiles
-# and runs Check<feature>.cpp probes — not cross-compile-safe). For MVP
-# we emit empty stubs (every feature absent). A compile-time probing
-# pass via cc.compiles() is a polish-phase follow-up.
+# and runs Check<feature>.cpp probes — not cross-compile-safe). We do
+# compile-time probes here via cc.compiles() and hand the discovered
+# features to gen-have-headers.py. COPY_TRAITS1 and CHRONO_TIME are
+# unconditionally marked present inside the script (required by C++11
+# semantics that NTL_SAFE_VECTORS depends on).
+have_extra_args = []
+
+# LL_TYPE: NTL uses __int128 as NTL_ULL_TYPE on GCC 4+. The probe
+# mirrors NTL's own ctools.h gate.
+if cpp.compiles(
+    '__int128 x = 1; int main(void) { (void)x; return 0; }',
+    name: 'compiler has __int128 (LL_TYPE)',
+)
+    have_extra_args += ['--present', 'LL_TYPE']
+endif
+
+# BUILTIN_CLZL: GCC / clang builtin.
+if cpp.compiles(
+    'int main(void) { return __builtin_clzl(1UL); }',
+    name: 'compiler has __builtin_clzl',
+)
+    have_extra_args += ['--present', 'BUILTIN_CLZL']
+endif
+
+# ALIGNED_ARRAY: C++11 alignas/alignof. Required by C++11; assume
+# present when cpp_std=c++11+.
+have_extra_args += ['--present', 'ALIGNED_ARRAY']
+
+# POSIX_TIME: clock_gettime, monotonic clock. Present on Linux,
+# Darwin, FreeBSD; absent on bare Windows (MinGW has it via winpthreads).
+if cpp.has_header_symbol('time.h', 'CLOCK_MONOTONIC')
+    have_extra_args += ['--present', 'POSIX_TIME']
+endif
+
+# MACOS_TIME: mach_absolute_time. Darwin only.
+if cpp.has_header('mach/mach_time.h')
+    have_extra_args += ['--present', 'MACOS_TIME']
+endif
+
+# COPY_TRAITS2: __has_trivial_copy SFINAE form, older GCC. Modern
+# compilers also support it. cc.compiles() probe matches NTL's
+# CheckCOPY_TRAITS2.cpp's bare-essential check.
+if cpp.compiles(
+    '#include <type_traits>\nint main(void) { return __has_trivial_copy(int) ? 0 : 0; }',
+    name: 'compiler has __has_trivial_copy',
+)
+    have_extra_args += ['--present', 'COPY_TRAITS2']
+endif
+
 have_headers = [
     'HAVE_ALIGNED_ARRAY.h', 'HAVE_BUILTIN_CLZL.h', 'HAVE_LL_TYPE.h',
     'HAVE_SSSE3.h', 'HAVE_AVX.h', 'HAVE_PCLMUL.h',
@@ -50,8 +96,11 @@ have_headers = [
 ]
 have_target = custom_target('have-headers',
     output: have_headers,
-    command: [python, files('../meson/gen-have-headers.py'),
-              meson.current_build_dir()],
+    command: [
+        python, files('../meson/gen-have-headers.py'),
+        meson.current_build_dir(),
+        have_extra_args,
+    ],
     install: true,
     install_dir: get_option('includedir') / 'NTL',
 )
