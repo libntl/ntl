@@ -16,14 +16,17 @@ trap 'rm -rf "$TMP_BUILD"' EXIT
 #
 # Use --buildtype=debugoptimized (-O2 -g) so the optimization level
 # matches the Makefile build's default (DoConfig sets CXXFLAGS='-g -O2'
-# unless overridden). Without this alignment, Meson's default
-# `buildtype=release` (-O3) emits a different set of inlined-vs-
-# externalized inline functions, producing spurious symbol-level
-# divergence unrelated to which build system was used. The point of
-# this test is to validate SC-002 (same exported symbol surface), not
-# optimization-level equivalence.
+# unless overridden). Also strip Meson's default extra flags:
+#   - -D_GLIBCXX_ASSERTIONS=1 (changes std::vector etc. codegen)
+#   - -D_FILE_OFFSET_BITS=64 (cosmetic; NTL doesn't use 32-bit off_t)
+#   - -Wall -Winvalid-pch (warning flags, but together they can affect
+#     -Werror=foo paths even at our warning_level=1)
+# so the only meaningful flags are -O2 -g -fdiagnostics-color and the
+# pkg-config'd includes. This isolates SC-002 (same exported symbol
+# surface) from cflag-induced inlining differences.
+MESON_PARITY_OPTS="--buildtype=debugoptimized -Dwarning_level=0 -Db_ndebug=true"
 cd "$REPO_ROOT"
-meson setup --buildtype=debugoptimized "$TMP_BUILD/meson" >"$TMP_BUILD/meson-setup.log" 2>&1 \
+meson setup $MESON_PARITY_OPTS "$TMP_BUILD/meson" >"$TMP_BUILD/meson-setup.log" 2>&1 \
     || { echo "FAIL: meson setup failed:" >&2; cat "$TMP_BUILD/meson-setup.log" >&2; exit 1; }
 meson compile -C "$TMP_BUILD/meson" >"$TMP_BUILD/meson-compile.log" 2>&1 \
     || { echo "FAIL: meson compile failed:" >&2; tail -30 "$TMP_BUILD/meson-compile.log" >&2; exit 1; }
