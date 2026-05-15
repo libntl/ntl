@@ -53,26 +53,11 @@ if use_gmp
         error('Could not determine sizeof(mp_limb_t). Is GMP installed for the target?')
     endif
 
-    # Build NTL's own gen_gmp_aux.cpp as a native executable. It prints the
-    # GMP-related macros (NTL_ZZ_NBITS, NTL_BITS_PER_LIMB_T, NTL_ZZ_FRADIX,
-    # NTL_SMALL_MP_SIZE_T) to stdout. Compiled with -DNTL_GMP_LIP=1 so the
-    # GMP code path is selected.
-    #
-    # Caveat: this runs on the build host, so for genuine cross-compile the
-    # values reflect the host's GMP. For x86_64-linux-gnu → x86_64-linux-gnu
-    # (Phase 3 MVP) this is correct. Cross-arch builds (Phases 4-8) will need
-    # additional work to validate the values against the target's GMP.
-    gen_gmp_aux_exe = executable('gen_gmp_aux',
-        sources: ['gen_gmp_aux.cpp'],
-        include_directories: ['../include'],
-        cpp_args: ['-DNTL_GMP_LIP'],
-        native: true,
-        dependencies: [gmp_dep],
-        install: false,
-    )
+    # gen_gmp_aux is declared inside src/NTL/meson.build, AFTER mach_desc.h
+    # has been declared as a custom_target, so its sources list can include
+    # mach_desc.h and Meson schedules the generation before the compile.
 else
     limb_size_bits = abi['bits_per_long'].to_int()
-    gen_gmp_aux_exe = []  # placeholder
 endif
 
 # (Generator targets moved to src/NTL/meson.build — see above.)

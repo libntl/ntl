@@ -11,12 +11,20 @@ mach_desc_h = custom_target('mach_desc.h',
 )
 
 if use_gmp
-    # gen_gmp_aux needs mach_desc.h available (it includes <NTL/mach_desc.h>).
-    # Run it via a python wrapper that:
-    #   1. cd's into a tempdir
-    #   2. exposes the build-tree NTL/ dir on the include path via env or
-    #      symlink — but gen_gmp_aux only needs include resolution at compile
-    #      time, which is already provided to the executable target above.
+    # gen_gmp_aux includes <NTL/mach_desc.h>, so its sources list must
+    # carry mach_desc_h as a build-order dependency, and its
+    # include_directories must reach the build-tree's NTL/ dir.
+    # `meson.current_build_dir()/..` is `<builddir>/src`, which contains
+    # the NTL/ subdir holding the generated headers.
+    gen_gmp_aux_exe = executable('gen_gmp_aux',
+        sources: ['../gen_gmp_aux.cpp', mach_desc_h],
+        include_directories: ['..', '../../include'],
+        cpp_args: ['-DNTL_GMP_LIP'],
+        native: true,
+        dependencies: [gmp_dep],
+        install: false,
+    )
+
     gmp_aux_writer = custom_target('gmp_aux.h',
         output: 'gmp_aux.h',
         input: mach_desc_h,

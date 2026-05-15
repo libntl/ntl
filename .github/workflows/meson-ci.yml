@@ -173,6 +173,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-user-static
           case "${{ matrix.triplet }}" in
             i686-linux-gnu)
+              # i386 is well-supported as a multiarch on ubuntu-latest;
+              # keep the multiarch GMP install for this one target.
               sudo apt-get install -y --no-install-recommends \
                 gcc-i686-linux-gnu g++-i686-linux-gnu
               sudo dpkg --add-architecture i386
@@ -180,25 +182,19 @@ jobs:
               sudo apt-get install -y --no-install-recommends libgmp-dev:i386
               ;;
             aarch64-linux-gnu)
+              # Multiarch libgmp-dev:arm64 is not reliably available on
+              # ubuntu-latest's mirror set. Build with -Dgmp=disabled
+              # until a sysroot-based GMP is wired (deferred follow-up).
               sudo apt-get install -y --no-install-recommends \
                 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-              sudo dpkg --add-architecture arm64
-              sudo apt-get update
-              sudo apt-get install -y --no-install-recommends libgmp-dev:arm64
               ;;
             powerpc64le-linux-gnu)
               sudo apt-get install -y --no-install-recommends \
                 gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
-              sudo dpkg --add-architecture ppc64el
-              sudo apt-get update
-              sudo apt-get install -y --no-install-recommends libgmp-dev:ppc64el
               ;;
             riscv64-linux-gnu)
               sudo apt-get install -y --no-install-recommends \
                 gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
-              sudo dpkg --add-architecture riscv64
-              sudo apt-get update
-              sudo apt-get install -y --no-install-recommends libgmp-dev:riscv64
               ;;
             x86_64-w64-mingw32)
               sudo apt-get install -y --no-install-recommends \
@@ -220,8 +216,11 @@ jobs:
         run: |
           extra=()
           case "${{ matrix.triplet }}" in
-            *-w64-mingw32)
-              # MinGW GMP isn't installed via apt; disable GMP for now.
+            *-w64-mingw32|aarch64-linux-gnu|powerpc64le-linux-gnu|riscv64-linux-gnu)
+              # Multiarch GMP isn't available on ubuntu-latest for these
+              # targets. Build with -Dgmp=disabled. NTL's built-in
+              # long-integer package is slower but produces a usable
+              # libntl, sufficient for cross-build validation.
               extra+=( -Dgmp=disabled )
               ;;
           esac

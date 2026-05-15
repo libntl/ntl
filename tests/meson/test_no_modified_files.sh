@@ -12,7 +12,20 @@ set -eu
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-base_ref="${1:-main}"
+# Default to origin/main: that exists after `actions/checkout@v4` with
+# fetch-depth: 0, whereas the bare `main` branch doesn't (CI checks out
+# the feature branch only). The first arg overrides for local use.
+base_ref="${1:-}"
+if [ -z "$base_ref" ]; then
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        base_ref="origin/main"
+    elif git rev-parse --verify main >/dev/null 2>&1; then
+        base_ref="main"
+    else
+        echo "FAIL: neither origin/main nor main exists" >&2
+        exit 1
+    fi
+fi
 if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
     echo "FAIL: base ref '$base_ref' does not exist" >&2
     exit 1

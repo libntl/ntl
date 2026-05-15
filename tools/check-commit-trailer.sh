@@ -17,9 +17,16 @@ set -eu
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-base_ref="${1:-main}"
-if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
-    echo "SKIP: base ref '$base_ref' not available — running outside a checkout that has it"
+base_ref="${1:-}"
+if [ -z "$base_ref" ]; then
+    if git rev-parse --verify origin/main >/dev/null 2>&1; then
+        base_ref="origin/main"
+    elif git rev-parse --verify main >/dev/null 2>&1; then
+        base_ref="main"
+    fi
+fi
+if [ -z "$base_ref" ] || ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
+    echo "SKIP: base ref '${base_ref:-(none)}' not available — running outside a checkout that has it"
     exit 0
 fi
 
