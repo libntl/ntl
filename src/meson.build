@@ -221,30 +221,32 @@ tests_should_run = abi['exec_mode'] != 'cross-only'
 
 # Tests come in two shapes:
 #   - simple: program is run with no stdin, just exit code matters.
-#     (QuickTest, ZZTest)
-#   - golden-diff: program reads <name>In from stdin, output is compared with
-#     `diff -b` against <name>Out. (BerlekampTest, and many others in
-#     src/TestScript.)
-simple_tests = ['QuickTest', 'ZZTest']
-golden_tests = ['BerlekampTest']
+#     (e.g. QuickTest, ZZTest)
+#   - golden-diff: program reads <name>In from stdin, output is compared
+#     with `diff -b` against <name>Out. (BerlekampTest, and many others
+#     in src/TestScript.)
+#
+# We BUILD QuickTest and ZZTest binaries so users can run them locally
+# (matching what NTL's `make check` does), but we DON'T register them
+# under `meson test`. QuickTest in particular is a benchmark that loops
+# at sizes up to 2^18 doubling iteration counts until each measurement
+# runs >=0.5s — typical wall time is 30-60min natively and several hours
+# under qemu user emulation, which isn't a CI fit. BerlekampTest is a
+# real algorithmic correctness check (factors a degree-128 polynomial
+# over GF(2)) that runs in seconds on every target.
+build_only_tests = ['QuickTest', 'ZZTest']
+golden_tests     = ['BerlekampTest']
 
 # Wrapper for golden-diff tests: redirect stdin from <Name>In, capture
 # stdout, diff against <Name>Out.
 golden_runner = files('meson/run-golden-test.sh')
 
-foreach tname : simple_tests
-    tprog = executable(tname,
+foreach tname : build_only_tests
+    executable(tname,
         sources: tname + '.cpp',
         dependencies: ntl_test_dep,
         install: false,
     )
-    if tests_should_run
-        test(tname, tprog, timeout: 1800)
-    else
-        test(tname + ' (skipped, cross-only target)', python,
-             args: ['-c', 'import sys; sys.exit(77)'],
-             should_fail: false)
-    endif
 endforeach
 
 foreach tname : golden_tests
