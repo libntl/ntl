@@ -214,12 +214,38 @@ jobs:
               # with -Dgmp=disabled until a sysroot-based GMP is added.
               ;;
             i686-w64-mingw32)
+              # Cross-toolchain for 32-bit MinGW + 32-bit Wine. Wine
+              # itself is multi-arch on Ubuntu: the `wine` apt package
+              # ships wine64, but running 32-bit PE binaries requires
+              # wine32:i386 from the multiarch repo.
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
               sudo apt-get install -y --no-install-recommends \
-                gcc-mingw-w64-i686 g++-mingw-w64-i686 wine
+                gcc-mingw-w64-i686 g++-mingw-w64-i686 \
+                wine wine32:i386
               ;;
             *)
               echo "ERROR: no install recipe for ${{ matrix.triplet }}" >&2
               exit 1
+              ;;
+          esac
+
+      - name: Export QEMU_LD_PREFIX for cross sysroot
+        # qemu-<arch>-static reads QEMU_LD_PREFIX to locate the target's
+        # dynamic linker. Without this, foreign-arch ELFs under binfmt
+        # fail to exec because qemu can't find ld-linux-<arch>.so.1 in
+        # the cross sysroot. Setting it via GITHUB_ENV makes it visible
+        # to every subsequent step in this job (configure, compile, test).
+        run: |
+          case "${{ matrix.triplet }}" in
+            aarch64-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+              ;;
+            powerpc64le-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/powerpc64le-linux-gnu" >> $GITHUB_ENV
+              ;;
+            riscv64-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/riscv64-linux-gnu" >> $GITHUB_ENV
               ;;
           esac
 
