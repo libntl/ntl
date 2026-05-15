@@ -1,0 +1,29 @@
+# T040: Meson cross-file for i686-linux-gnu.
+#
+# Toolchain assumption: Debian/Ubuntu's `gcc-i686-linux-gnu` /
+# `g++-i686-linux-gnu` cross-toolchain plus `qemu-user-static` for running
+# target binaries via Meson's exe_wrapper mechanism.
+#
+# Override any of the [properties] keys (which are pre-filled by the
+# in-source ABI table at src/meson/abi-tables/i686-linux-gnu.ini) by
+# adding the key to this file.
+
+[binaries]
+c          = 'i686-linux-gnu-gcc'
+cpp        = 'i686-linux-gnu-g++'
+ar         = 'i686-linux-gnu-ar'
+strip      = 'i686-linux-gnu-strip'
+pkg-config = 'i686-linux-gnu-pkg-config'
+exe_wrapper = ['qemu-i386-static']
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'x86'
+cpu        = 'i686'
+endian     = 'little'
+
+[properties]
+# In-source ABI table (src/meson/abi-tables/i686-linux-gnu.ini) supplies
+# the full set of required keys; this section is intentionally empty.
+# Override individual keys here if you need to deviate (e.g. set
+# exec_mode = native when running on a real 32-bit host).

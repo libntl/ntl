@@ -39,6 +39,23 @@ REQUIRED_KEYS: list[tuple[str, set[str] | None]] = [
 ]
 
 
+def normalize_cpu_family(cpu: str) -> str:
+    """Normalize architecture token to Meson's cpu_family vocabulary.
+
+    Meson's host_machine.cpu_family() returns 'x86' for i386/i486/i586/i686,
+    'arm' for armv6/armv7l/armv7, etc. The ABI table triplets use the
+    longer form (e.g. i686-linux-gnu) but cross-key validation needs to
+    compare against Meson's vocabulary.
+    """
+    if cpu in {"i386", "i486", "i586", "i686"}:
+        return "x86"
+    if cpu.startswith("armv") or cpu == "arm":
+        return "arm"
+    if cpu in {"powerpc64le", "ppc64le"}:
+        return "ppc64"
+    return cpu
+
+
 def parse_triplet(triplet: str) -> tuple[str, str, str]:
     """Return (cpu_family, os, libc) given a Meson-style triplet.
 
@@ -49,7 +66,7 @@ def parse_triplet(triplet: str) -> tuple[str, str, str]:
     parts = triplet.split("-")
     if len(parts) < 2:
         raise ValueError(f"Triplet {triplet!r} is not in canonical form")
-    cpu = parts[0]
+    cpu = normalize_cpu_family(parts[0])
     if "apple" in parts:
         return cpu, "darwin", "darwin"
     if "w64" in parts and parts[-1].startswith("mingw"):

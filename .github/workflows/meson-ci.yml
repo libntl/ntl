@@ -120,3 +120,95 @@ jobs:
           name: native-${{ matrix.os }}-meson-logs
           path: build/meson-logs/
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------
+  # Cross-compile matrix on a Linux runner. Phase 4 (US2) enables the
+  # first two cross targets; later phases add more entries.
+  # See contracts/ci-matrix.contract.md for the design.
+  # ---------------------------------------------------------------------
+  cross:
+    name: cross (${{ matrix.triplet }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet:
+          - i686-linux-gnu
+          # x86_64-linux-musl is wired but disabled until a musl-cross
+          # toolchain is selected in the workflow. Re-enable once Phase 4
+          # T042 follow-up picks a toolchain source (musl-cross-make,
+          # zig cc, Alpine container, etc.).
+          # - x86_64-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Meson, Ninja, Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build python3 pkg-config
+
+      - name: Install cross-toolchain for ${{ matrix.triplet }}
+        run: |
+          set -eu
+          case "${{ matrix.triplet }}" in
+            i686-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-i686-linux-gnu g++-i686-linux-gnu \
+                qemu-user-static
+              # GMP for the i686 target via multiarch.
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgmp-dev:i386
+              ;;
+            *)
+              echo "ERROR: no install recipe for ${{ matrix.triplet }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Configure
+        run: |
+          meson setup \
+            --cross-file=ci/cross-files/${{ matrix.triplet }}.txt \
+            build
+
+      - name: Compile (build step REQUIRED — no continue-on-error)
+        run: meson compile -C build
+
+      - name: Test (skipped tests under qemu are not failures)
+        run: meson test -C build --print-errorlogs --timeout-multiplier 3 || true
+        # `|| true` because test execution under QEMU is best-effort on
+        # this matrix; build success is the required criterion (Q4
+        # clarification: best-effort targets' build step is required;
+        # tests may be unrunnable, see FR-007).
+
+      - name: Verify the produced libntl is the right architecture
+        run: |
+          set -eu
+          case "${{ matrix.triplet }}" in
+            i686-linux-gnu)
+              expected='80386'
+              ;;
+            *)
+              expected=''
+              ;;
+          esac
+          libntl=$(find build -name 'libntl.so*' -type f | head -1)
+          if [ -z "$libntl" ]; then
+            echo "ERROR: libntl.so was not produced" >&2
+            exit 1
+          fi
+          file "$libntl"
+          if [ -n "$expected" ] && ! file "$libntl" | grep -q "$expected"; then
+            echo "ERROR: libntl.so is not the expected architecture" >&2
+            exit 1
+          fi
+
+      - name: Upload meson-logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-${{ matrix.triplet }}-meson-logs
+          path: build/meson-logs/
+          if-no-files-found: ignore
