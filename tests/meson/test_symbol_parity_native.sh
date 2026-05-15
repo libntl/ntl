@@ -35,11 +35,22 @@ if [ -z "$meson_lib" ]; then
     exit 1
 fi
 
-# 2. Makefile build into a separate worktree
+# 2. Makefile build into a separate worktree.
+#
+# NATIVE=off is critical for parity. The default `./configure` sets
+# `CXXAUTOFLAGS=-pthread -march=native`, which makes gcc generate
+# CPU-specific code AND changes its inlining heuristics — yielding a
+# subtly different external-symbol surface (extra inline helpers like
+# NTL::InputError, WrappedPtr destructors, etc. get inlined under
+# -march=native and become invisible at link time). The Meson build
+# doesn't currently apply -march=native (and won't, since portable
+# builds shouldn't tie binaries to the build host's CPU). Aligning
+# Makefile to NATIVE=off makes the two builds use the same generic
+# baseline that distribution packagers (Yggdrasil, Debian, etc.) use.
 MAKE_TREE="$TMP_BUILD/makefile-tree"
 git -C "$REPO_ROOT" worktree add --detach "$MAKE_TREE" HEAD >/dev/null
 cd "$MAKE_TREE/src"
-./configure SHARED=on >"$TMP_BUILD/configure.log" 2>&1 \
+./configure SHARED=on NATIVE=off >"$TMP_BUILD/configure.log" 2>&1 \
     || { echo "FAIL: ./configure failed:" >&2; tail -30 "$TMP_BUILD/configure.log" >&2; exit 1; }
 make -j"$(nproc)" >"$TMP_BUILD/make.log" 2>&1 \
     || { echo "FAIL: make failed:" >&2; tail -30 "$TMP_BUILD/make.log" >&2; exit 1; }
