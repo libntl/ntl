@@ -285,3 +285,38 @@ jobs:
           name: cross-${{ matrix.triplet }}-meson-logs
           path: build/meson-logs/
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------
+  # Lint: sync / drift / cohabitation / CHANGELOG / commit-trailer checks.
+  # ---------------------------------------------------------------------
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need history for the cohabitation diff and trailer checks.
+          fetch-depth: 0
+
+      - name: Install Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3
+
+      - name: sources.txt in sync with mfile
+        run: python3 tools/check-sources-in-sync.py
+
+      - name: config.h.in in sync with cfile
+        run: python3 tools/check-cfile-in-sync.py
+
+      - name: version.txt in sync with version.h
+        run: python3 tools/sync-version.py --check
+
+      - name: CHANGELOG.md in Keep a Changelog format
+        run: bash tests/meson/test_changelog_format.sh
+
+      - name: Cohabitation — no protected legacy file modified
+        run: bash tests/meson/test_no_modified_files.sh
+
+      - name: Commit trailer + AI-disclosure invariants
+        run: bash tools/check-commit-trailer.sh
