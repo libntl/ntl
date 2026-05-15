@@ -278,11 +278,17 @@ jobs:
         run: meson compile -C build
 
       - name: Test (skipped tests under qemu are not failures)
-        run: meson test -C build --print-errorlogs --timeout-multiplier 3 || true
-        # `|| true` because test execution under QEMU is best-effort on
-        # this matrix; build success is the required criterion (Q4
-        # clarification: best-effort targets' build step is required;
-        # tests may be unrunnable, see FR-007).
+        run: meson test -C build --print-errorlogs --timeout-multiplier 10 || true
+        # Build step success is the required criterion (Q4 clarification:
+        # best-effort targets' build step is required; tests may be
+        # unrunnable, see FR-007). `|| true` keeps the job green when
+        # tests fail or are unrunnable.
+        #
+        # timeout-multiplier 10 (per-test ceiling = 18000 s = 5 h) gives
+        # the NTL benchmark-style tests (QuickTest in particular) enough
+        # time to complete under qemu-user emulation, which runs ~5-10x
+        # slower than native. The overall job is bounded by GitHub
+        # Actions' default 6 h limit.
 
       - name: Verify the produced libntl is the right architecture
         run: |
