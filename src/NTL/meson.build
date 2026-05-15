@@ -10,40 +10,22 @@ mach_desc_h = custom_target('mach_desc.h',
     install_dir: get_option('includedir') / 'NTL',
 )
 
-if use_gmp
-    # gen_gmp_aux includes <NTL/mach_desc.h>, so its sources list must
-    # carry mach_desc_h as a build-order dependency, and its
-    # include_directories must reach the build-tree's NTL/ dir.
-    # `meson.current_build_dir()/..` is `<builddir>/src`, which contains
-    # the NTL/ subdir holding the generated headers.
-    gen_gmp_aux_exe = executable('gen_gmp_aux',
-        sources: ['../gen_gmp_aux.cpp', mach_desc_h],
-        include_directories: ['..', '../../include'],
-        cpp_args: ['-DNTL_GMP_LIP'],
-        native: true,
-        dependencies: [gmp_dep],
-        install: false,
-    )
-
-    gmp_aux_writer = custom_target('gmp_aux.h',
-        output: 'gmp_aux.h',
-        input: mach_desc_h,
-        command: [gen_gmp_aux_exe],
-        capture: true,
-        install: true,
-        install_dir: get_option('includedir') / 'NTL',
-    )
-else
-    # Fallback: emit a minimal stub so consumers' #include <NTL/gmp_aux.h>
-    # resolves but defines no GMP-specific macros.
-    gmp_aux_writer = custom_target('gmp_aux.h',
-        output: 'gmp_aux.h',
-        command: [python, files('../meson/gen-gmp-aux.py'), limb_size_bits.to_string()],
-        capture: true,
-        install: true,
-        install_dir: get_option('includedir') / 'NTL',
-    )
-endif
+# gmp_aux.h is produced by a small Python generator rather than NTL's
+# native gen_gmp_aux.cpp executable. The C++ generator runs on the build
+# host, links against the build host's GMP, and aborts under cross-compile
+# whenever the target's bits_per_long differs from the host's. Computing
+# the same macros from the target-side `cc.sizeof('mp_limb_t')` value works
+# correctly for both native and cross builds.
+gmp_aux_writer = custom_target('gmp_aux.h',
+    output: 'gmp_aux.h',
+    command: [
+        python, files('../meson/gen-gmp-aux.py'),
+        limb_size_bits.to_string(), abi['bits_per_long'],
+    ],
+    capture: true,
+    install: true,
+    install_dir: get_option('includedir') / 'NTL',
+)
 
 config_h = configure_file(
     input: '../config.h.in',

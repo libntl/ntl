@@ -167,6 +167,17 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             meson ninja-build python3 pkg-config
 
+      - name: Register qemu-user binfmt handlers
+        # Without this, the kernel won't know to invoke
+        # qemu-<arch>-static for foreign-arch ELFs, and Meson's
+        # compiler sanity check (which runs a small test binary) fails
+        # with "Executables created by cpp compiler ... are not
+        # runnable." This step is a no-op for MinGW (Wine handles
+        # those via exe_wrapper directly).
+        if: ${{ !contains(matrix.triplet, 'mingw') }}
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
       - name: Install cross-toolchain for ${{ matrix.triplet }}
         run: |
           set -eu
