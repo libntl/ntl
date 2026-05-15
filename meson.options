@@ -1,0 +1,93 @@
+# T021: User-facing build toggles for NTL.
+#
+# Mirrors the user-controllable options of the legacy ./configure path
+# (DoConfig's %MakeFlag and %ConfigFlag hashes). Each option below maps to a
+# corresponding @VAR@ placeholder in src/config.h.in.
+#
+# See specs/001-meson-cross-compile/contracts/meson-options.contract.md for
+# the stability promise and the rationale for the defaults below.
+
+option('threads',
+    type: 'boolean',
+    value: true,
+    description: 'Enable thread support (NTL_THREADS). Disabled automatically if the target ABI table has threading=none.',
+)
+
+option('exceptions',
+    type: 'boolean',
+    value: true,
+    description: 'Enable C++ exception support (NTL_EXCEPTIONS).',
+)
+
+option('thread_boost',
+    type: 'boolean',
+    value: false,
+    description: 'Enable internal use of threads to accelerate NTL (NTL_THREAD_BOOST). Requires threads=true.',
+)
+
+option('gmp',
+    type: 'feature',
+    value: 'enabled',
+    description: 'Use GMP for long integer arithmetic (NTL_GMP_LIP). Strongly recommended.',
+)
+
+option('gf2x',
+    type: 'feature',
+    value: 'disabled',
+    description: 'Use GF2X for GF(2)[X] arithmetic (NTL_GF2X_LIB). Requires the GF2X library to be installed.',
+)
+
+option('tune',
+    type: 'combo',
+    choices: ['generic', 'x86', 'linux-s390x'],
+    value: 'x86',
+    description: 'Static tune-parameter table. The auto-tuning Wizard (TUNE=auto in the Makefile build) is intentionally NOT supported here.',
+)
+
+option('disable_longdouble',
+    type: 'feature',
+    value: 'auto',
+    description: 'Disable long-double-dependent code paths (NTL_DISABLE_LONGDOUBLE). Default: auto (forced on for Darwin, MinGW).',
+)
+
+option('tls_hack',
+    type: 'feature',
+    value: 'auto',
+    description: 'Enable the thread-local-storage hack (NTL_TLS_HACK). Default: auto (derived from ABI table).',
+)
+
+option('legacy_no_namespace',
+    type: 'boolean',
+    value: false,
+    description: 'Place NTL components in the global namespace instead of namespace NTL (NTL_LEGACY_NO_NAMESPACE). For backward compatibility only.',
+)
+
+option('legacy_input_error',
+    type: 'boolean',
+    value: false,
+    description: 'Abort on input errors instead of setting the stream fail bit (NTL_LEGACY_INPUT_ERROR). For backward compatibility only.',
+)
+
+option('safe_vectors',
+    type: 'boolean',
+    value: true,
+    description: 'Compile NTL in safe-vector mode (NTL_SAFE_VECTORS).',
+)
+
+option('range_check',
+    type: 'boolean',
+    value: false,
+    description: 'Enable vector subscript range-check code (NTL_RANGE_CHECK). Slows execution; for debugging only.',
+)
+
+option('build_static',
+    type: 'boolean',
+    value: false,
+    description: 'Also build a static libntl.a alongside the shared library (Meson default_library is shared).',
+)
+
+option('abi_triplet',
+    type: 'string',
+    value: '',
+    description: 'Override the target triplet used to select the ABI table file under src/meson/abi-tables/. Empty (default) means: derive from host_machine.',
+)

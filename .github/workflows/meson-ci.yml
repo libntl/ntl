@@ -1,0 +1,122 @@
+# T034 (and subsequent phases): GitHub Actions CI for the Meson build.
+#
+# Structure (per specs/001-meson-cross-compile/contracts/ci-matrix.contract.md
+# and the clarifications session 2026-05-15):
+#
+#   native — strategy.matrix over {ubuntu-latest, macos-13, macos-latest,
+#            windows-latest with MinGW-w64 via msys2}. Each runner builds NTL
+#            natively for its own OS/arch and runs the test suite.
+#   cross  — strategy.matrix over the cross-only triplets (musl, ARM Linux,
+#            ppc64le, MinGW, FreeBSD, RISC-V). Runs on ubuntu-latest only.
+#            Build step is required for every triplet (no continue-on-error).
+#   lint   — sources-in-sync check, cfile-in-sync check, version-in-sync check.
+#
+# This file is Phase 3 MVP scope: only the native ubuntu-latest job is
+# enabled. macOS, Windows, and the cross matrix are added in Phases 6/7
+# and Phases 4-8 respectively. See tasks.md T059, T068, T034 et al.
+
+name: meson-ci
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Native build on each hosted runner OS.
+  # ---------------------------------------------------------------------
+  native:
+    name: native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]  # Extended in Phases 6 / 7: add macos-13, macos-latest, windows-latest.
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Toolchain & dependencies --------------------------------------
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build python3 \
+            libgmp-dev \
+            pkg-config
+
+      - name: Install build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install meson ninja gmp pkg-config
+
+      - name: Set up MSYS2 with MinGW-w64 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gmp
+            mingw-w64-x86_64-pkgconf
+
+      # --- Sources sync check (lint moved inline for Phase 3 MVP) --------
+      - name: Verify generated artifacts are in sync
+        if: runner.os == 'Linux'
+        run: |
+          python3 tools/check-sources-in-sync.py
+          python3 tools/check-cfile-in-sync.py
+          python3 tools/sync-version.py --check
+
+      # --- Build & test ---------------------------------------------------
+      - name: Configure
+        if: runner.os != 'Windows'
+        run: meson setup build
+
+      - name: Configure (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson setup build
+
+      - name: Compile
+        if: runner.os != 'Windows'
+        run: meson compile -C build
+
+      - name: Compile (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson compile -C build
+
+      - name: Test
+        if: runner.os != 'Windows'
+        run: meson test -C build --print-errorlogs --timeout-multiplier 2
+
+      - name: Test (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson test -C build --print-errorlogs --timeout-multiplier 2
+
+      # --- Parity check (only meaningful on Linux x86_64 where both paths
+      #     are exercised). Validates SC-002. ---------------------------
+      - name: Verify symbol parity against Makefile build
+        if: runner.os == 'Linux' && matrix.os == 'ubuntu-latest'
+        run: |
+          bash tests/meson/test_symbol_parity_native.sh
+
+      # --- Logs upload ----------------------------------------------------
+      - name: Upload meson-logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.os }}-meson-logs
+          path: build/meson-logs/
+          if-no-files-found: ignore
