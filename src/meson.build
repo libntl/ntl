@@ -110,7 +110,10 @@ cfg.set('NTL_SPMM_ULL',            0)
 cfg.set('NTL_FFT_BIGTAB',          0)
 cfg.set('NTL_FFT_LAZYMUL',         0)
 cfg.set('NTL_AVOID_BRANCHING',     0)
-cfg.set('NTL_TBL_REM',             0)
+# NTL_TBL_REM: activates _ntl_rem_struct_tbl (table-driven REM path),
+# same x86-only optimization story as NTL_CRT_ALTCODE. Gated in lip.cpp
+# to NTL_VIABLE_LL builds with NTL_NAIL_BITS == 0; otherwise auto-undef.
+cfg.set('NTL_TBL_REM',             (abi['x86_specializations'] == 'true') ? 1 : 0)
 # NTL_CRT_ALTCODE: activates _ntl_crt_struct_tbl in lip.cpp — a table-
 # driven CRT path that's faster on x86 and only viable when LL_TYPE is
 # available with NTL_BITS_PER_LIMB_T == NTL_BITS_PER_LONG. The Makefile

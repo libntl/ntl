@@ -12,9 +12,18 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMP_BUILD="$(mktemp -d)"
 trap 'rm -rf "$TMP_BUILD"' EXIT
 
-# 1. Meson build
+# 1. Meson build.
+#
+# Use --buildtype=debugoptimized (-O2 -g) so the optimization level
+# matches the Makefile build's default (DoConfig sets CXXFLAGS='-g -O2'
+# unless overridden). Without this alignment, Meson's default
+# `buildtype=release` (-O3) emits a different set of inlined-vs-
+# externalized inline functions, producing spurious symbol-level
+# divergence unrelated to which build system was used. The point of
+# this test is to validate SC-002 (same exported symbol surface), not
+# optimization-level equivalence.
 cd "$REPO_ROOT"
-meson setup "$TMP_BUILD/meson" >"$TMP_BUILD/meson-setup.log" 2>&1 \
+meson setup --buildtype=debugoptimized "$TMP_BUILD/meson" >"$TMP_BUILD/meson-setup.log" 2>&1 \
     || { echo "FAIL: meson setup failed:" >&2; cat "$TMP_BUILD/meson-setup.log" >&2; exit 1; }
 meson compile -C "$TMP_BUILD/meson" >"$TMP_BUILD/meson-compile.log" 2>&1 \
     || { echo "FAIL: meson compile failed:" >&2; tail -30 "$TMP_BUILD/meson-compile.log" >&2; exit 1; }
