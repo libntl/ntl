@@ -1,0 +1,28 @@
+# T041: Meson cross-file for x86_64-linux-musl.
+#
+# Toolchain assumption: a musl-cross-make toolchain or Alpine's
+# x86_64-linux-musl-gcc installed and on PATH. Adjust the [binaries]
+# paths if your toolchain has a different prefix.
+#
+# Because the target ABI is identical to x86_64-linux-gnu apart from
+# libc, the produced binaries can usually run on a glibc host if
+# ld-musl-x86_64.so.1 is present (e.g. from the `musl` package). Set
+# exec_mode = native in [properties] below to enable test execution
+# under that condition; otherwise tests will be marked unrunnable.
+
+[binaries]
+c          = 'x86_64-linux-musl-gcc'
+cpp        = 'x86_64-linux-musl-g++'
+ar         = 'x86_64-linux-musl-ar'
+strip      = 'x86_64-linux-musl-strip'
+pkg-config = 'pkg-config'
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'x86_64'
+cpu        = 'x86_64'
+endian     = 'little'
+
+[properties]
+# In-source ABI table (src/meson/abi-tables/x86_64-linux-musl.ini)
+# supplies the full set of required keys. Add overrides below if needed.

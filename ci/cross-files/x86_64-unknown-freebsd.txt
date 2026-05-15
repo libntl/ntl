@@ -1,0 +1,21 @@
+# Cross-file for x86_64-unknown-freebsd (best-effort target).
+# Toolchain: a FreeBSD cross-clang (e.g. from a cached FreeBSD sysroot
+# tarball + clang's --target=x86_64-unknown-freebsd flag). The exact
+# binary names depend on how the toolchain is laid out; substitute as
+# needed for your setup.
+#
+# Cross-only target: tests cannot run under QEMU user-mode from Linux.
+
+[binaries]
+c     = 'x86_64-unknown-freebsd-clang'
+cpp   = 'x86_64-unknown-freebsd-clang++'
+ar    = 'x86_64-unknown-freebsd-ar'
+strip = 'x86_64-unknown-freebsd-strip'
+
+[host_machine]
+system     = 'freebsd'
+cpu_family = 'x86_64'
+cpu        = 'x86_64'
+endian     = 'little'
+
+[properties]

@@ -799,13 +799,13 @@ int main()
 
    while (ulval) {
       ulval <<= 1;
-      touch_ulong(&ulval); 
+      touch_ulong(&ulval);
       bpl++;
    }
 
 
    /*
-    * compute nb_bpl = NumBits(bpl) 
+    * compute nb_bpl = NumBits(bpl)
     */
 
    ulval = bpl;
@@ -926,6 +926,22 @@ int main()
    }
 
 
+#ifdef NTL_FORCE_BPL
+   /* Cross-compile override: emit mach_desc.h for a target whose bits-per-long
+    * may differ from the build host. The host-side sanity checks above used
+    * the real host bpl; from here on, NBITS / WNBITS computation, BB code
+    * generation, and the output values reflect the target bpl. Has no effect
+    * on builds that don't define NTL_FORCE_BPL.
+    *
+    * Recompute nb_bpl from the forced value so downstream output is consistent. */
+   bpl = (NTL_FORCE_BPL);
+   {
+      unsigned long _u = (unsigned long) bpl;
+      nb_bpl = 0;
+      while (_u) { _u >>= 1; nb_bpl++; }
+   }
+#endif
+
 
    /*
     * check that floating point to integer conversions truncates toward zero
@@ -1038,9 +1054,17 @@ int main()
 
    fma_detected = FMADetected(dp);
 
-   /* 
+#ifdef NTL_FORCE_NO_FMA
+   /* Cross-compile override: report no FMA regardless of what the build
+    * host's runtime probe says. Used when the target lacks FMA hardware
+    * (or its availability cannot be relied on) and the build host is
+    * different from the target. */
+   fma_detected = 0;
+#endif
+
+   /*
     * Next, we check if the platform may reassociate FP operations.
-    */ 
+    */
 
    reassoc_detected = ReassocDetected(dp);
 

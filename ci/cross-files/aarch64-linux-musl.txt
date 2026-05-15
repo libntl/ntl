@@ -1,0 +1,19 @@
+# Cross-file for aarch64-linux-musl.
+# Toolchain: aarch64-linux-musl-gcc / -g++ (musl-cross-make, Alpine cross,
+# or zig cc with -target aarch64-linux-musl). Adjust paths as needed.
+
+[binaries]
+c          = 'aarch64-linux-musl-gcc'
+cpp        = 'aarch64-linux-musl-g++'
+ar         = 'aarch64-linux-musl-ar'
+strip      = 'aarch64-linux-musl-strip'
+exe_wrapper = ['qemu-aarch64-static']
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'aarch64'
+cpu        = 'aarch64'
+endian     = 'little'
+
+[properties]
+needs_exe_wrapper = true

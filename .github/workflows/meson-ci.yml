@@ -1,0 +1,372 @@
+# T034 (and subsequent phases): GitHub Actions CI for the Meson build.
+#
+# Structure (per specs/001-meson-cross-compile/contracts/ci-matrix.contract.md
+# and the clarifications session 2026-05-15):
+#
+#   native — strategy.matrix over {ubuntu-latest, macos-13, macos-latest,
+#            windows-latest with MinGW-w64 via msys2}. Each runner builds NTL
+#            natively for its own OS/arch and runs the test suite.
+#   cross  — strategy.matrix over the cross-only triplets (musl, ARM Linux,
+#            ppc64le, MinGW, FreeBSD, RISC-V). Runs on ubuntu-latest only.
+#            Build step is required for every triplet (no continue-on-error).
+#   lint   — sources-in-sync check, cfile-in-sync check, version-in-sync check.
+#
+# This file is Phase 3 MVP scope: only the native ubuntu-latest job is
+# enabled. macOS, Windows, and the cross matrix are added in Phases 6/7
+# and Phases 4-8 respectively. See tasks.md T059, T068, T034 et al.
+
+name: meson-ci
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------
+  # Native build on each hosted runner OS.
+  # ---------------------------------------------------------------------
+  native:
+    name: native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-13       # Phase 6 (US4): Intel macOS native build.
+          - macos-latest   # Phase 6 (US4): Apple Silicon macOS native build.
+          # Phase 7 (US5) will add windows-latest with msys2 + MinGW-w64.
+          # Disabled until the workflow's msys2 setup is exercised; see
+          # the placeholder step below.
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Toolchain & dependencies --------------------------------------
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build python3 \
+            libgmp-dev \
+            pkg-config
+
+      - name: Install build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install meson ninja gmp pkg-config
+
+      - name: Set up MSYS2 with MinGW-w64 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-meson
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gmp
+            mingw-w64-x86_64-pkgconf
+
+      # --- Sources sync check (lint moved inline for Phase 3 MVP) --------
+      - name: Verify generated artifacts are in sync
+        if: runner.os == 'Linux'
+        run: |
+          python3 tools/check-sources-in-sync.py
+          python3 tools/check-cfile-in-sync.py
+          python3 tools/sync-version.py --check
+
+      # --- Build & test ---------------------------------------------------
+      - name: Configure
+        if: runner.os != 'Windows'
+        run: meson setup build
+
+      - name: Configure (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson setup build
+
+      - name: Compile
+        if: runner.os != 'Windows'
+        run: meson compile -C build
+
+      - name: Compile (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson compile -C build
+
+      - name: Test
+        if: runner.os != 'Windows'
+        run: meson test -C build --print-errorlogs --timeout-multiplier 2
+
+      - name: Test (Windows / msys2 shell)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: meson test -C build --print-errorlogs --timeout-multiplier 2
+
+      # --- Parity check (only meaningful on Linux x86_64 where both paths
+      #     are exercised). Validates SC-002. ---------------------------
+      - name: Verify symbol parity against Makefile build
+        if: runner.os == 'Linux' && matrix.os == 'ubuntu-latest'
+        run: |
+          bash tests/meson/test_symbol_parity_native.sh
+
+      # --- Logs upload ----------------------------------------------------
+      - name: Upload meson-logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.os }}-meson-logs
+          path: build/meson-logs/
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------
+  # Cross-compile matrix on a Linux runner. Phase 4 (US2) enables the
+  # first two cross targets; later phases add more entries.
+  # See contracts/ci-matrix.contract.md for the design.
+  # ---------------------------------------------------------------------
+  cross:
+    name: cross (${{ matrix.triplet }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        triplet:
+          # Phase 4 (US2, P1): apt-installable cross-toolchains.
+          - i686-linux-gnu
+          # Phase 5 (US3, P2): aarch64 / armv7 / ppc64le via apt cross.
+          - aarch64-linux-gnu
+          - powerpc64le-linux-gnu
+          # Phase 8 (US6, P3, best-effort): RISC-V via apt cross.
+          - riscv64-linux-gnu
+          # Phase 7 (US5, P3): MinGW-w64 cross from Linux.
+          - x86_64-w64-mingw32
+          # i686-w64-mingw32 is wired but currently disabled in CI:
+          # ubuntu-latest's wine + wine32:i386 combination does not
+          # transparently exec 32-bit PE binaries under Meson's compiler
+          # sanity check despite multiarch setup, and binfmt registration
+          # for Wine on hosted runners is finicky. The 64-bit MinGW path
+          # exercises the same source tree and is green; revisit in a
+          # follow-up when a reliable 32-bit Wine setup is available.
+          # - i686-w64-mingw32
+          #
+          # The following triplets are wired but not yet enabled in the
+          # matrix. Each is unblocked by selecting a toolchain source:
+          #   x86_64-linux-musl, aarch64-linux-musl: musl-cross-make /
+          #     zig cc / Alpine cross.
+          #   armv7l-linux-gnueabihf-musl: musl-cross-make.
+          #   x86_64-apple-darwin, aarch64-apple-darwin: osxcross /
+          #     BinaryBuilder SDK (license-gated).
+          #   x86_64-unknown-freebsd: cached FreeBSD sysroot + clang.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Meson, Ninja, Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            meson ninja-build python3 pkg-config
+
+      - name: Register qemu-user binfmt handlers
+        # Without this, the kernel won't know to invoke
+        # qemu-<arch>-static for foreign-arch ELFs, and Meson's
+        # compiler sanity check (which runs a small test binary) fails
+        # with "Executables created by cpp compiler ... are not
+        # runnable." This step is a no-op for MinGW (Wine handles
+        # those via exe_wrapper directly).
+        if: ${{ !contains(matrix.triplet, 'mingw') }}
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Install cross-toolchain for ${{ matrix.triplet }}
+        run: |
+          set -eu
+          sudo apt-get install -y --no-install-recommends qemu-user-static
+          case "${{ matrix.triplet }}" in
+            i686-linux-gnu)
+              # i386 is well-supported as a multiarch on ubuntu-latest;
+              # keep the multiarch GMP install for this one target.
+              sudo apt-get install -y --no-install-recommends \
+                gcc-i686-linux-gnu g++-i686-linux-gnu
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgmp-dev:i386
+              ;;
+            aarch64-linux-gnu)
+              # Multiarch libgmp-dev:arm64 is not reliably available on
+              # ubuntu-latest's mirror set. Build with -Dgmp=disabled
+              # until a sysroot-based GMP is wired (deferred follow-up).
+              sudo apt-get install -y --no-install-recommends \
+                gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+              ;;
+            powerpc64le-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
+              ;;
+            riscv64-linux-gnu)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
+              ;;
+            x86_64-w64-mingw32)
+              sudo apt-get install -y --no-install-recommends \
+                gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 wine wine64
+              # GMP for MinGW is not in apt; the cross-build will run
+              # with -Dgmp=disabled until a sysroot-based GMP is added.
+              ;;
+            i686-w64-mingw32)
+              # Cross-toolchain for 32-bit MinGW + 32-bit Wine. Wine
+              # itself is multi-arch on Ubuntu: the `wine` apt package
+              # ships wine64, but running 32-bit PE binaries requires
+              # wine32:i386 from the multiarch repo.
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends \
+                gcc-mingw-w64-i686 g++-mingw-w64-i686 \
+                wine wine32:i386
+              ;;
+            *)
+              echo "ERROR: no install recipe for ${{ matrix.triplet }}" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Export QEMU_LD_PREFIX for cross sysroot
+        # qemu-<arch>-static reads QEMU_LD_PREFIX to locate the target's
+        # dynamic linker. Without this, foreign-arch ELFs under binfmt
+        # fail to exec because qemu can't find ld-linux-<arch>.so.1 in
+        # the cross sysroot. Setting it via GITHUB_ENV makes it visible
+        # to every subsequent step in this job (configure, compile, test).
+        run: |
+          case "${{ matrix.triplet }}" in
+            aarch64-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+              ;;
+            powerpc64le-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/powerpc64le-linux-gnu" >> $GITHUB_ENV
+              ;;
+            riscv64-linux-gnu)
+              echo "QEMU_LD_PREFIX=/usr/riscv64-linux-gnu" >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Configure
+        run: |
+          extra=()
+          case "${{ matrix.triplet }}" in
+            *-w64-mingw32|aarch64-linux-gnu|powerpc64le-linux-gnu|riscv64-linux-gnu)
+              # Multiarch GMP isn't available on ubuntu-latest for these
+              # targets. Build with -Dgmp=disabled. NTL's built-in
+              # long-integer package is slower but produces a usable
+              # libntl, sufficient for cross-build validation.
+              extra+=( -Dgmp=disabled )
+              ;;
+          esac
+          meson setup \
+            --cross-file=ci/cross-files/${{ matrix.triplet }}.txt \
+            -Dabi_triplet=${{ matrix.triplet }} \
+            "${extra[@]}" \
+            build
+
+      - name: Compile (build step REQUIRED — no continue-on-error)
+        run: meson compile -C build
+
+      - name: Test (skipped tests under qemu are not failures)
+        run: meson test -C build --print-errorlogs --timeout-multiplier 10 || true
+        # Build step success is the required criterion (Q4 clarification:
+        # best-effort targets' build step is required; tests may be
+        # unrunnable, see FR-007). `|| true` keeps the job green when
+        # tests fail or are unrunnable.
+        #
+        # timeout-multiplier 10 (per-test ceiling = 18000 s = 5 h) gives
+        # the NTL benchmark-style tests (QuickTest in particular) enough
+        # time to complete under qemu-user emulation, which runs ~5-10x
+        # slower than native. The overall job is bounded by GitHub
+        # Actions' default 6 h limit.
+
+      - name: Verify the produced libntl is the right architecture
+        run: |
+          set -eu
+          case "${{ matrix.triplet }}" in
+            i686-linux-gnu|i686-w64-mingw32)
+              expected='80386'
+              ;;
+            x86_64-linux-gnu|x86_64-linux-musl|x86_64-w64-mingw32|x86_64-apple-darwin|x86_64-unknown-freebsd)
+              expected='x86-64'
+              ;;
+            aarch64-linux-gnu|aarch64-linux-musl|aarch64-apple-darwin)
+              expected='aarch64'
+              ;;
+            armv7l-linux-gnueabihf-musl)
+              expected='ARM'
+              ;;
+            powerpc64le-linux-gnu)
+              expected='PowerPC'
+              ;;
+            riscv64-linux-gnu)
+              expected='RISC-V'
+              ;;
+            *)
+              expected=''
+              ;;
+          esac
+          libntl=$(find build \( -name 'libntl.so*' -o -name 'libntl-*.dll' -o -name 'libntl*.dylib' \) -type f | head -1)
+          if [ -z "$libntl" ]; then
+            echo "ERROR: libntl artifact was not produced" >&2
+            find build -name 'libntl*' >&2 || true
+            exit 1
+          fi
+          file "$libntl"
+          if [ -n "$expected" ] && ! file "$libntl" | grep -q "$expected"; then
+            echo "ERROR: libntl artifact does not match expected '$expected'" >&2
+            exit 1
+          fi
+
+      - name: Upload meson-logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-${{ matrix.triplet }}-meson-logs
+          path: build/meson-logs/
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------
+  # Lint: sync / drift / cohabitation / CHANGELOG / commit-trailer checks.
+  # ---------------------------------------------------------------------
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need history for the cohabitation diff and trailer checks.
+          fetch-depth: 0
+
+      - name: Install Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3
+
+      - name: sources.txt in sync with mfile
+        run: python3 tools/check-sources-in-sync.py
+
+      - name: config.h.in in sync with cfile
+        run: python3 tools/check-cfile-in-sync.py
+
+      - name: version.txt in sync with version.h
+        run: python3 tools/sync-version.py --check
+
+      - name: CHANGELOG.md in Keep a Changelog format
+        run: bash tests/meson/test_changelog_format.sh
+
+      - name: Cohabitation — no protected legacy file modified
+        run: bash tests/meson/test_no_modified_files.sh
+
+      - name: Commit trailer + AI-disclosure invariants
+        run: bash tools/check-commit-trailer.sh

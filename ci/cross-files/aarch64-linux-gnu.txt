@@ -1,0 +1,19 @@
+# Cross-file for aarch64-linux-gnu.
+# Toolchain: Debian/Ubuntu's gcc-aarch64-linux-gnu / g++-aarch64-linux-gnu.
+
+[binaries]
+c          = 'aarch64-linux-gnu-gcc'
+cpp        = 'aarch64-linux-gnu-g++'
+ar         = 'aarch64-linux-gnu-ar'
+strip      = 'aarch64-linux-gnu-strip'
+pkg-config = 'aarch64-linux-gnu-pkg-config'
+exe_wrapper = ['qemu-aarch64-static']
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'aarch64'
+cpu        = 'aarch64'
+endian     = 'little'
+
+[properties]
+needs_exe_wrapper = true

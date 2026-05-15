@@ -1,0 +1,21 @@
+# Cross-file for i686-w64-mingw32 (32-bit Windows via MinGW-w64).
+# Toolchain: Debian/Ubuntu's g++-mingw-w64-i686. Test execution via wine
+# (32-bit). Stress-tests the FORCE_BPL=32 code path under the
+# build-host MakeDesc.
+
+[binaries]
+c           = 'i686-w64-mingw32-gcc'
+cpp         = 'i686-w64-mingw32-g++'
+ar          = 'i686-w64-mingw32-ar'
+strip       = 'i686-w64-mingw32-strip'
+windres     = 'i686-w64-mingw32-windres'
+exe_wrapper = ['wine']
+
+[host_machine]
+system     = 'windows'
+cpu_family = 'x86'
+cpu        = 'i686'
+endian     = 'little'
+
+[properties]
+needs_exe_wrapper = true

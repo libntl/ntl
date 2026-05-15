@@ -1,0 +1,136 @@
+
+
+                        Building NTL with Meson
+                        =======================
+
+
+This document covers the Meson-based build path, which is an alternative
+to the traditional Perl-driven ./configure + Makefile build.
+
+The Meson build is opt-in: it cohabits with the existing Makefile.  If you
+do nothing different, "cd src && ./configure && make" continues to work
+exactly as before.  Use the Meson path only when you need cross-compile
+support or prefer the Meson workflow.
+
+
+Section 1.  Quick start (native build)
+--------------------------------------
+
+From the top of the source tree:
+
+    meson setup build
+    meson compile -C build
+    meson test -C build
+    meson install -C build --destdir /tmp/ntl-install
+
+The resulting libntl, headers, and ntl.pc are installed under the prefix
+(default /usr/local) below /tmp/ntl-install.
+
+
+Section 2.  Cross-compiling
+---------------------------
+
+The Meson build supports cross-compilation without executing any
+target-architecture binary during configuration.  The list of supported
+target triplets is in src/meson/abi-tables/.  To cross-compile, supply a
+Meson cross-file:
+
+    meson setup --cross-file=ci/cross-files/aarch64-linux-gnu.txt build-arm
+    meson compile -C build-arm
+
+See specs/001-meson-cross-compile/quickstart.md for worked scenarios for
+several common targets.
+
+
+Section 3.  Supported targets
+-----------------------------
+
+(See src/meson/abi-tables/ for the authoritative list.)
+
+   x86_64-linux-gnu             aarch64-linux-gnu        x86_64-apple-darwin
+   x86_64-linux-musl            aarch64-linux-musl       aarch64-apple-darwin
+   i686-linux-gnu               armv7l-linux-gnueabihf-musl
+                                powerpc64le-linux-gnu    x86_64-w64-mingw32
+                                                         i686-w64-mingw32
+                                x86_64-unknown-freebsd   riscv64-linux-gnu
+
+
+Section 4.  Configuration options
+---------------------------------
+
+See `meson configure build` for the full list, or read meson.options at
+the root of the source tree.  Common options:
+
+   -Dthreads=true|false                Enable thread support
+   -Dexceptions=true|false             Enable C++ exceptions
+   -Dgmp=enabled|disabled|auto         Use GMP for long-integer arithmetic
+   -Dgf2x=enabled|disabled             Use GF2X for GF(2)[X] multiplication
+   -Dtune=generic|x86|linux-s390x      Static tune table (no Wizard)
+   -Ddisable_longdouble=true|false     Suppress long-double code paths
+
+
+Section 5.  Known symbol-surface differences
+--------------------------------------------
+
+The Meson-built libntl.so and the Makefile-built libntl.so share an
+identical public NTL API surface (every ZZ, ZZX, RR, mat_*, vec_*,
+GF2X, etc. symbol exported by one is exported by the other, with the
+same mangling and the same ABI).  Programs and libraries that link
+against either build will resolve every documented NTL symbol.
+
+A small set of internal helper symbols is known to differ in
+visibility between the two builds.  These are mostly C++ inline
+helpers (error throwers, smart-pointer destructors, template
+instantiations) whose visibility (inlined-at-call-site vs
+emitted-as-weak-export) depends on gcc's per-translation-unit cost
+analysis.  That cost analysis is NOT fully reproducible across build
+systems even with identical -O2 -g flags, identical sources, and the
+same target.  Observed examples include but are not limited to:
+
+   NTL::InputError, LogicError, MemoryError, ResourceError
+       (inline error-throwing helpers in tools.h)
+   NTL::ErrorObject and its derived-class destructors
+       (InputErrorObject, LogicErrorObject, MemoryErrorObject)
+   NTL::WrappedPtr<_ntl_gbigint_body,
+                   _ntl_gbigint_deleter> destructors
+   NTL::MakeSmartAux<T> destructors for specific T
+       (T = ZZ in the Meson build, T = RecursiveThreadPool in the
+        Makefile build, etc.)
+   wrapped_mpz destructors
+   integer-type-signature variants for a few internal helpers
+       (e.g. new_fft_base taking `long*` vs `unsigned long*`)
+
+None of these affect runtime correctness, ABI compatibility, or the
+resolution of any public NTL symbol.
+
+The CI's symbol-parity test (T026 in
+tests/meson/test_symbol_parity_native.sh) is INFORMATIONAL: it logs
+the diff for visibility but does not fail the CI build on these
+known divergences.  A maintainer reviewing the CI logs after a
+non-trivial change should sanity-check that the diff hasn't grown
+into something that looks public-API rather than helper-internal.
+
+
+Section 6.  Limitations
+-----------------------
+
+   *  The auto-tuning Wizard (TUNE=auto in the Makefile path) is NOT
+      supported by the Meson build.  Use the Makefile build if you need
+      Wizard-tuned parameters.
+
+   *  On Windows, only MinGW-w64 is supported.  MSVC support is out of
+      scope.  The Windows build is currently flagged "experimental":
+      symbol export is coarse-grained (everything is exported); binary
+      compatibility across NTL releases is weaker than on ELF platforms.
+
+   *  Long-double-dependent code paths are automatically suppressed on
+      all Apple and all MinGW targets because long double on these
+      platforms is 64-bit IEEE rather than the wider forms NTL prefers.
+
+
+Section 7.  Reporting bugs
+--------------------------
+
+   *  General NTL bugs:           https://github.com/libntl/ntl/issues
+   *  Meson build issues:         tag with "build-system" or "meson"
+   *  Cross-compile issues:       reference issue #8 in your report

@@ -1,0 +1,18 @@
+# Cross-file for armv7l-linux-gnueabihf-musl (32-bit ARM, hard-float, musl).
+# Toolchain: armv7l-linux-musleabihf-gcc/g++ (musl-cross-make) or analogous.
+
+[binaries]
+c          = 'armv7l-linux-musleabihf-gcc'
+cpp        = 'armv7l-linux-musleabihf-g++'
+ar         = 'armv7l-linux-musleabihf-ar'
+strip      = 'armv7l-linux-musleabihf-strip'
+exe_wrapper = ['qemu-arm-static']
+
+[host_machine]
+system     = 'linux'
+cpu_family = 'arm'
+cpu        = 'armv7l'
+endian     = 'little'
+
+[properties]
+needs_exe_wrapper = true
