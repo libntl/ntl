@@ -207,30 +207,27 @@ def run(args: argparse.Namespace) -> int:
                             context, phase, candidates,
                             repeats=max(1, self.args.iterations),
                         )
-                    except CompileFailure as exc:
-                        log.write_line(f"COMPILE FAILURE: {exc}")
+                    except (CompileFailure, RuntimeFailure, MeasurementNoiseTooHigh) as exc:
+                        # Stay open so the user can read the error.
+                        # Setting exit_code now means `q` (or the
+                        # Footer's quit binding) returns the right
+                        # status when the user dismisses the screen.
+                        kind = type(exc).__name__
+                        kind_to_code = {
+                            "CompileFailure":          EXIT_COMPILE_FAILURE,
+                            "RuntimeFailure":          EXIT_RUNTIME_FAILURE,
+                            "MeasurementNoiseTooHigh": EXIT_MEASUREMENT_NOISE,
+                        }
+                        log.write_line(f"{kind.upper()}: {exc}")
                         ps.status = PhaseStatus.FAILED
                         ps.error = str(exc)
                         self.session.save()
-                        self.exit_code = EXIT_COMPILE_FAILURE
-                        self.exit()
-                        return
-                    except RuntimeFailure as exc:
-                        log.write_line(f"RUNTIME FAILURE: {exc}")
-                        ps.status = PhaseStatus.FAILED
-                        ps.error = str(exc)
-                        self.session.save()
-                        self.exit_code = EXIT_RUNTIME_FAILURE
-                        self.exit()
-                        return
-                    except MeasurementNoiseTooHigh as exc:
-                        log.write_line(f"NOISE TOO HIGH: {exc}")
-                        ps.status = PhaseStatus.FAILED
-                        ps.error = str(exc)
-                        self.session.save()
-                        self.exit_code = EXIT_MEASUREMENT_NOISE
-                        self.exit()
-                        return
+                        self.exit_code = kind_to_code[kind]
+                        status.update(
+                            f"Phase {pid} failed ({kind}). Press Q to quit "
+                            f"(exit code {self.exit_code})."
+                        )
+                        return  # leave the app running; user dismisses
 
                     chosen = derive_values(pid, measurements)
                     ps.derived_values = chosen

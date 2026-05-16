@@ -286,6 +286,58 @@ def _run_tui(
     dry_run: bool,
     resume: bool,
 ) -> int:
+    # Pre-flight checks happen BEFORE we enter the Textual alternate
+    # screen, so any failure surfaces as a normal stderr message
+    # instead of a TUI flash-and-exit that looks like "the TUI didn't
+    # open."
+
+    # 1. Platform / cross-vs-native.
+    plat_result = plat.check_native(target=target)
+    if plat_result.kind == plat.CheckResult.CROSS_REFUSAL:
+        _err(plat_result.message)
+        return EXIT_CROSS_REFUSAL
+
+    # 2. NTL source directory must contain src/.
+    source_dir = _resolve_source_dir(ntl_source_dir)
+    if not (source_dir / "src").exists():
+        _err(
+            f"NTL source dir not found or missing src/: {source_dir}. "
+            f"Run `ntl-wizard` from inside an NTL source tree, or pass "
+            f"--ntl-source-dir=PATH explicitly."
+        )
+        return EXIT_GENERIC
+
+    # 3. Phase list.
+    try:
+        _resolve_phase_ids(phases_arg)
+    except ValueError as exc:
+        _err(str(exc))
+        return EXIT_GENERIC
+
+    # 4. libntl must already be built — `measure.py` links each timing
+    #    program against the existing libntl.{so,dylib} produced by
+    #    `meson compile -C build`. Without it, the very first compile
+    #    fails with undefined references and the TUI would flash open
+    #    and close before the user can read the error. Skip the check
+    #    in dry-run mode where no compile happens.
+    if not dry_run:
+        libntl_candidates = [
+            source_dir / "build" / "src" / "libntl.so",
+            source_dir / "build" / "src" / "libntl.so.0",
+            source_dir / "build" / "src" / "libntl.dylib",
+            source_dir / "build" / "src" / "libntl.0.dylib",
+        ]
+        if not any(p.exists() for p in libntl_candidates):
+            _err(
+                f"libntl shared library not found under {source_dir}/build/src/. "
+                f"Build NTL first so the Wizard can link timing programs against it:\n"
+                f"    meson setup {source_dir}/build\n"
+                f"    meson compile -C {source_dir}/build\n"
+                f"Then re-run ntl-wizard."
+            )
+            return EXIT_GENERIC
+
+    # 5. Textual must be importable.
     try:
         from . import app as _app
     except ImportError as exc:
