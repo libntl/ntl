@@ -39,9 +39,15 @@ option('gf2x',
 
 option('tune',
     type: 'combo',
-    choices: ['generic', 'x86', 'linux-s390x'],
-    value: 'x86',
-    description: 'Static tune-parameter table. The auto-tuning Wizard (TUNE=auto in the Makefile build) is intentionally NOT supported here.',
+    choices: ['default', 'generic', 'x86', 'linux-s390x', 'host'],
+    value: 'default',
+    description: 'Tune-parameter source. "default" picks per target (x86 family → x86, s390x → linux-s390x, else generic). "host" reads src/meson/tune-tables/host-tuned.ini (produced by ntl-wizard). Static values: generic, x86, linux-s390x.',
+)
+
+option('tune_artifact',
+    type: 'string',
+    value: '',
+    description: 'Optional override for the path to the host-tuned.ini tune artifact. If empty and tune=host, defaults to src/meson/tune-tables/host-tuned.ini relative to the source tree.',
 )
 
 option('disable_longdouble',

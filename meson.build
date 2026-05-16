@@ -18,15 +18,25 @@ project('ntl', 'cpp',
     ],
 )
 
-# The Wizard (TUNE=auto) is intentionally unsupported by the Meson path; see
-# FR-014. The tune option's combo type already rejects 'auto', but we also
-# guard explicitly for clarity in error messages.
+# -------------------------------------------------------------------
+# Resolve the tune-table source.
+#
+# `-Dtune=default` (the build default):
+#     x86 family → 'x86', s390x → 'linux-s390x', else 'generic'.
+# `-Dtune=generic|x86|linux-s390x`: use the named static table from
+#     src/meson/tune-tables/<name>.ini (FR-005's static fallback).
+# `-Dtune=host`: read src/meson/tune-tables/host-tuned.ini (produced
+#     by the Python Wizard `ntl-wizard`). Fails if absent.
+# `-Dtune=auto`: rejected explicitly with a pointer to ntl-wizard.
+# -------------------------------------------------------------------
+
 if get_option('tune') == 'auto'
     error(
-        'The auto-tuning Wizard is not supported under the Meson build. ' +
-        'Use the Makefile build (./configure TUNE=auto) if you need ' +
-        'Wizard-tuned parameters. The Meson build accepts only the static ' +
-        'tune tables: generic, x86, linux-s390x.',
+        'The legacy auto-tuning Wizard (TUNE=auto) is gone. ' +
+        'Run `pip install ./tools && ntl-wizard` to produce ' +
+        'src/meson/tune-tables/host-tuned.ini, then build with ' +
+        '`-Dtune=host`. For a static table without running the Wizard, ' +
+        'pass `-Dtune=generic`, `-Dtune=x86`, or `-Dtune=linux-s390x`.',
     )
 endif
 
@@ -62,6 +72,7 @@ if triplet == ''
 endif
 
 python = find_program('python3', required: true)
+fs = import('fs')
 pick_abi = files('src/meson/pick-abi.py')
 
 abi_result = run_command(
@@ -109,6 +120,58 @@ endforeach
 
 message('Resolved ABI table for ' + triplet + ': bits_per_long=' +
         abi['bits_per_long'] + ', shlib_style=' + abi['shlib_style'])
+
+# -------------------------------------------------------------------
+# Resolve and load the tune-parameter table.
+#
+# `tune == 'default'` is mapped to one of the static tables based on
+# the resolved cpu_family. `tune == 'host'` consumes the artifact
+# produced by `ntl-wizard`.
+# -------------------------------------------------------------------
+
+tune_opt = get_option('tune')
+if tune_opt == 'default'
+    if cpu_family == 'x86_64' or cpu_family == 'x86'
+        tune_resolved = 'x86'
+    elif cpu_family == 's390x'
+        tune_resolved = 'linux-s390x'
+    else
+        tune_resolved = 'generic'
+    endif
+else
+    tune_resolved = tune_opt
+endif
+
+if tune_resolved == 'host'
+    tune_artifact_path = get_option('tune_artifact')
+    if tune_artifact_path == ''
+        tune_artifact_path = meson.project_source_root() + '/src/meson/tune-tables/host-tuned.ini'
+    endif
+    if not fs.exists(tune_artifact_path)
+        error(
+            'No host-tuned.ini found at ' + tune_artifact_path + '. ' +
+            'Run `pip install ' + meson.project_source_root() + '/tools && ntl-wizard` ' +
+            'first, or pick a static tune: ' +
+            '`-Dtune=default|generic|x86|linux-s390x`.'
+        )
+    endif
+else
+    tune_artifact_path = meson.project_source_root() + '/src/meson/tune-tables/' + tune_resolved + '.ini'
+endif
+
+read_tune = files('src/meson/read-tune-table.py')
+tune_result = run_command(python.full_path(), read_tune, tune_artifact_path, check: false)
+if tune_result.returncode() != 0
+    error('Failed to read tune table ' + tune_artifact_path + ':\n' + tune_result.stderr())
+endif
+tune_flags = []
+foreach line : tune_result.stdout().strip().split('\n')
+    if line != ''
+        tune_flags += line
+    endif
+endforeach
+message('Tune table ' + tune_resolved + ' loaded: ' + tune_flags.length().to_string() + ' parameter flags')
+add_project_arguments(tune_flags, language: 'cpp')
 
 # -------------------------------------------------------------------
 # Dependencies.
