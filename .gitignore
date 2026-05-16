@@ -1,0 +1,25 @@
+# NTL .gitignore — gitallow-pattern style (allowlist within constrained
+# subtrees). Per CLAUDE.md "use a gitallow pattern for .gitignore".
+#
+# User-approved entries (feature 002 implementation, 2026-05-16):
+#   - src/meson/tune-tables/host-tuned.ini (Wizard auto-tune output;
+#     not committed by default, user MAY commit explicitly for fork
+#     reproducibility per FR-005c)
+#   - *.egg-info/ (Python pip build artifacts from
+#     `pip install ./tools`)
+#
+# To add new ignore rules, obtain explicit user approval per CLAUDE.md
+# project rules.
+
+# Constrained allowlist for src/meson/tune-tables/:
+# Static tune tables are checked in; the Wizard's host-tuned.ini is not.
+src/meson/tune-tables/*
+!src/meson/tune-tables/generic.ini
+!src/meson/tune-tables/x86.ini
+!src/meson/tune-tables/linux-s390x.ini
+!src/meson/tune-tables/.gitkeep
+
+# Python packaging artifacts (egg-info appears anywhere `pip install`
+# runs; rarely useful in version control). Same approval as host-tuned.ini.
+*.egg-info/
+tools/build/

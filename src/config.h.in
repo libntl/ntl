@@ -32,7 +32,7 @@ to be defined.  Of course,  to unset a flag, just replace the
   */
 
 
-#if @{NTL_LEGACY_NO_NAMESPACE}
+#if @NTL_LEGACY_NO_NAMESPACE@
 #define NTL_LEGACY_NO_NAMESPACE
 
 /* 
@@ -46,7 +46,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_LEGACY_INPUT_ERROR}
+#if @NTL_LEGACY_INPUT_ERROR@
 #define NTL_LEGACY_INPUT_ERROR
 
 /*
@@ -59,7 +59,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_TLS_HACK}
+#if @NTL_TLS_HACK@
 #define NTL_TLS_HACK
 
 /* Set if you want to compile NTL with "TLS hack"
@@ -68,7 +68,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_THREADS}
+#if @NTL_THREADS@
 #define NTL_THREADS
 
 /* Set if you want to compile NTL as a thread-safe library.
@@ -78,7 +78,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_EXCEPTIONS}
+#if @NTL_EXCEPTIONS@
 #define NTL_EXCEPTIONS
 
 /* Set if you want to compile NTL with exceptions enabled
@@ -87,7 +87,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_THREAD_BOOST}
+#if @NTL_THREAD_BOOST@
 #define NTL_THREAD_BOOST
 
 /* Set if you want to compile NTL to exploit threads internally.
@@ -97,7 +97,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_GMP_LIP}
+#if @NTL_GMP_LIP@
 #define NTL_GMP_LIP
 
 /* 
@@ -115,7 +115,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_GF2X_LIB}
+#if @NTL_GF2X_LIB@
 #define NTL_GF2X_LIB
 
 /* 
@@ -133,7 +133,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_STD_CXX11}
+#if @NTL_STD_CXX11@
 #define NTL_STD_CXX11
 
 /*
@@ -142,7 +142,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_STD_CXX14}
+#if @NTL_STD_CXX14@
 #define NTL_STD_CXX14
 
 /*
@@ -151,7 +151,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_DISABLE_MOVE_ASSIGN}
+#if @NTL_DISABLE_MOVE_ASSIGN@
 #define NTL_DISABLE_MOVE_ASSIGN
 
 /*
@@ -162,7 +162,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_DISABLE_MOVE}
+#if @NTL_DISABLE_MOVE@
 #define NTL_DISABLE_MOVE
 
 /*
@@ -172,8 +172,8 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{FLAG_UNSIGNED_LONG_LONG_TYPE}
-#define NTL_UNSIGNED_LONG_LONG_TYPE @{NTL_UNSIGNED_LONG_LONG_TYPE}
+#if @FLAG_UNSIGNED_LONG_LONG_TYPE@
+#define NTL_UNSIGNED_LONG_LONG_TYPE @NTL_UNSIGNED_LONG_LONG_TYPE@
 
 /*
  *   NTL_UNSIGNED_LONG_LONG_TYPE will be used
@@ -188,7 +188,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_CLEAN_INT}
+#if @NTL_CLEAN_INT@
 #define NTL_CLEAN_INT
 
 /*
@@ -199,7 +199,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_CLEAN_PTR}
+#if @NTL_CLEAN_PTR@
 #define NTL_CLEAN_PTR
 
 /*
@@ -210,7 +210,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_SAFE_VECTORS}
+#if @NTL_SAFE_VECTORS@
 #define NTL_SAFE_VECTORS
 
 /*
@@ -221,7 +221,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_ENABLE_AVX_FFT}
+#if @NTL_ENABLE_AVX_FFT@
 #define NTL_ENABLE_AVX_FFT
 
 /*
@@ -232,7 +232,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_AVOID_AVX512}
+#if @NTL_AVOID_AVX512@
 #define NTL_AVOID_AVX512
 
 /*
@@ -242,7 +242,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
  
-#if @{NTL_RANGE_CHECK}
+#if @NTL_RANGE_CHECK@
 #define NTL_RANGE_CHECK
 
 /*
@@ -257,7 +257,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_NO_INIT_TRANS}
+#if @NTL_NO_INIT_TRANS@
 #define NTL_NO_INIT_TRANS
 
 /*
@@ -276,7 +276,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_X86_FIX}
+#if @NTL_X86_FIX@
 #define NTL_X86_FIX
 
 /*
@@ -291,7 +291,7 @@ to be defined.  Of course,  to unset a flag, just replace the
  *  
  */
 
-#elif @{NTL_NO_X86_FIX}
+#elif @NTL_NO_X86_FIX@
 #define NTL_NO_X86_FIX
 /*
  *  Forces no "x86 floating point fix", overriding the default behavior.
@@ -301,7 +301,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_LEGACY_SP_MULMOD}
+#if @NTL_LEGACY_SP_MULMOD@
 #define NTL_LEGACY_SP_MULMOD
 
 /* Forces legacy single-precision MulMod implementation.
@@ -310,7 +310,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_DISABLE_LONGDOUBLE}
+#if @NTL_DISABLE_LONGDOUBLE@
 #define NTL_DISABLE_LONGDOUBLE
 
 /* Explicitly disables us of long double arithmetic
@@ -319,7 +319,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_DISABLE_LONGLONG}
+#if @NTL_DISABLE_LONGLONG@
 #define NTL_DISABLE_LONGLONG
 
 /* Explicitly disables us of long long arithmetic 
@@ -327,7 +327,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_DISABLE_LL_ASM}
+#if @NTL_DISABLE_LL_ASM@
 #define NTL_DISABLE_LL_ASM
 
 /* Explicitly disables us of inline assembly as a replacement
@@ -337,7 +337,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_MAXIMIZE_SP_NBITS}
+#if @NTL_MAXIMIZE_SP_NBITS@
 #define NTL_MAXIMIZE_SP_NBITS
 
 /* Allows for 62-bit single-precision moduli on 64-bit platforms.
@@ -367,7 +367,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_SPMM_ULL}
+#if @NTL_SPMM_ULL@
 #define NTL_SPMM_ULL
 
 /*    This also causes an "all integer"
@@ -389,7 +389,7 @@ to be defined.  Of course,  to unset a flag, just replace the
  * FFT modulo single-precision primes is implemented.
  */
 
-#if @{NTL_FFT_BIGTAB}
+#if @NTL_FFT_BIGTAB@
 #define NTL_FFT_BIGTAB
 
 /*
@@ -402,7 +402,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_FFT_LAZYMUL}
+#if @NTL_FFT_LAZYMUL@
 #define  NTL_FFT_LAZYMUL
 
 /*
@@ -416,7 +416,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_AVOID_BRANCHING}
+#if @NTL_AVOID_BRANCHING@
 #define NTL_AVOID_BRANCHING
 
 /*
@@ -433,7 +433,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_TBL_REM}
+#if @NTL_TBL_REM@
 #define NTL_TBL_REM
 
 /*
@@ -447,7 +447,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 
 
-#if @{NTL_CRT_ALTCODE}
+#if @NTL_CRT_ALTCODE@
 #define NTL_CRT_ALTCODE
 
 /*
@@ -459,7 +459,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_CRT_ALTCODE_SMALL}
+#if @NTL_CRT_ALTCODE_SMALL@
 #define NTL_CRT_ALTCODE_SMALL
 
 /*
@@ -472,7 +472,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-#if @{NTL_GF2X_ALTCODE}
+#if @NTL_GF2X_ALTCODE@
 #define NTL_GF2X_ALTCODE
 
 /*
@@ -484,7 +484,7 @@ to be defined.  Of course,  to unset a flag, just replace the
  *
  */
 
-#elif @{NTL_GF2X_ALTCODE1}
+#elif @NTL_GF2X_ALTCODE1@
 #define NTL_GF2X_ALTCODE1
 
 
@@ -497,7 +497,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_GF2X_NOINLINE}
+#if @NTL_GF2X_NOINLINE@
 #define NTL_GF2X_NOINLINE
 
 /*
@@ -509,7 +509,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 
 #endif
 
-#if @{NTL_RANDOM_AES256CTR}
+#if @NTL_RANDOM_AES256CTR@
 #define NTL_RANDOM_AES256CTR
 
 /*
@@ -546,7 +546,7 @@ to be defined.  Of course,  to unset a flag, just replace the
 #endif
 
 
-@{WIZARD_HACK}
+@WIZARD_HACK@
 
 
 #endif

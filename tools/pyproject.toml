@@ -1,0 +1,73 @@
+# Package metadata for the NTL Python Wizard. Ships in-tree with the
+# NTL source tarball; not (yet) published to PyPI. To install locally:
+#
+#     pip install ./tools
+#
+# Then invoke: `ntl-wizard` or `python -m ntl_wizard`.
+#
+# Version is kept in lockstep with the surrounding NTL tree via
+# tools/sync-version.py (existing tool from feature 001).
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ntl-wizard"
+version = "12.0.0"
+description = "Auto-tuning Wizard for the NTL number-theory C++ library."
+readme = "ntl_wizard/README.md"
+requires-python = ">=3.10"
+# NTL is LGPL-2.1-or-later; the surrounding source tree's
+# doc/copying.txt is the authoritative license file. We use the
+# in-line form here because setuptools rejects file paths outside
+# the project root.
+license = "LGPL-2.1-or-later"
+authors = [
+    {name = "The NTL maintainers"},
+]
+keywords = ["ntl", "number-theory", "tuning", "wizard", "build-system"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: BSD :: FreeBSD",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "textual>=1.0",
+    "rich>=13.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+[project.scripts]
+ntl-wizard = "ntl_wizard.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/libntl/ntl"
+"Bug Tracker" = "https://github.com/libntl/ntl/issues"
+
+[tool.setuptools]
+packages = ["ntl_wizard"]
+
+[tool.setuptools.package-dir]
+ntl_wizard = "ntl_wizard"
+
+[tool.pytest.ini_options]
+testpaths = ["../tests/ntl_wizard"]
+markers = [
+    "slow: end-to-end tests that compile and run NTL timing binaries (excluded from default run)",
+]

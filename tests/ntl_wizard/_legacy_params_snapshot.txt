@@ -1,0 +1,25 @@
+# Legacy Wizard tunable-parameter list, captured from src/WizardAux
+# Source: src/WizardAux at 2026-05-16, NTL pre-feature-002 tree.
+# Format: one parameter name per line, sorted ASCII.
+#
+# Provenance: extracted from the `%Config` initial hash (src/WizardAux:80-95)
+# plus every name appearing in the `foreach $aflag1`/`foreach $bflag1`/
+# `foreach $flag1` search loops that gets set to a value by the Wizard.
+# Names that the Wizard *reads* but does not *set* (NTL_HAVE_LL_TYPE,
+# NTL_HAVE_PCLMUL, NTL_LONGLONG_SP_MULMOD, NTL_GMP_LIP) are NOT included
+# — they are platform features, not Wizard outputs.
+#
+# WIZARD_HACK is excluded too: it's a string-replacement marker used
+# internally to toggle config.h regeneration, not a tunable.
+#
+# Total: 10 parameters.
+NTL_AVOID_BRANCHING
+NTL_CRT_ALTCODE
+NTL_CRT_ALTCODE_SMALL
+NTL_FFT_BIGTAB
+NTL_FFT_LAZYMUL
+NTL_GF2X_ALTCODE
+NTL_GF2X_ALTCODE1
+NTL_GF2X_NOINLINE
+NTL_SPMM_ULL
+NTL_TBL_REM

@@ -126,14 +126,19 @@ int main()
 
    FromZZ_pXModRep(c, modrep, 0, dc);
 
+   setbuf(stderr, NULL);
+   fprintf(stderr, "[Poly3] starting (calibrating iter…)\n");
+
    iter = 1;
 
    do {
+     fprintf(stderr, "[Poly3 warmup] trying iter=%ld\n", iter);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         FromZZ_pXModRep(c, modrep, 0, dc);
      }
      t = GetTime() - t;
+     fprintf(stderr, "[Poly3 warmup] iter=%ld took %.3fs\n", iter, t);
      iter = 2*iter;
    } while(t < 1);
 
@@ -145,13 +150,15 @@ int main()
    long w;
 
    for (w = 0; w < 5; w++) {
+     fprintf(stderr, "[Poly3 pass %ld/5] starting (iter=%ld)\n", w + 1, iter);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         FromZZ_pXModRep(c, modrep, 0, dc);
      }
      t = GetTime() - t;
      tvec[w] = t;
-   } 
+     fprintf(stderr, "[Poly3 pass %ld/5] done in %.3fs\n", w + 1, t);
+   }
 
 
    t = clean_data(tvec);

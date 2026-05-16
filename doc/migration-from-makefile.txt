@@ -1,0 +1,283 @@
+
+
+                  Migration from `./configure && make`
+                  ====================================
+                              (NTL 12.0)
+
+
+Section 1.  What changed (BREAKING)
+-----------------------------------
+
+NTL 12.0 removes the legacy Perl `./configure` + Makefile + Wizard
+build infrastructure.  Meson is now the sole supported build path.
+
+If your build scripts call:
+
+    cd src && ./configure ... && make ... && make install
+
+they will FAIL on NTL 12.0 — the `configure` script and Makefile
+no longer exist.  Section 3 below walks through the common migration
+recipes.  The full rationale is in specs/002-remove-legacy-build/.
+
+
+Section 2.  DoConfig option mapping
+-----------------------------------
+
+Every variable understood by the legacy `DoConfig` script and its
+Meson replacement, side by side.  Options marked "removed" have no
+direct Meson equivalent.
+
+Build placement and output:
+
+    PREFIX=/usr/local                 →  meson setup --prefix=/usr/local
+    LIBDIR=$(PREFIX)/lib              →  meson setup --libdir=lib
+    INCLUDEDIR=$(PREFIX)/include      →  always $PREFIX/include (fixed)
+    DOCDIR=$(PREFIX)/share/doc        →  always $PREFIX/share/doc (fixed)
+    PKGDIR=$(PREFIX)/lib/pkgconfig    →  meson setup --pkgconfigdir=...
+    SHARED=on|off                     →  meson setup --default-library=shared|static
+                                         (or -Dbuild_static=true)
+
+Compiler & flags:
+
+    CXX=g++                           →  CXX=g++ meson setup ...
+    CXXFLAGS='-g -O2'                 →  CXXFLAGS='-g -O2' meson setup ...
+    LDFLAGS=...                       →  LDFLAGS=... meson setup ...
+    CPPFLAGS=-I/foo                   →  CPPFLAGS=-I/foo meson setup ...
+    NATIVE=on|off                     →  removed.  Pass -march=native via
+                                         CXXFLAGS for the on case; for
+                                         portable binaries do not set
+                                         -march=native.
+
+GMP & GF2X:
+
+    GMP_PREFIX=/usr                   →  PKG_CONFIG_PATH=/usr/lib/pkgconfig
+                                         meson setup -Dgmp=enabled
+    NTL_GMP_LIP=on                    →  -Dgmp=enabled (default: auto)
+    GF2X_PREFIX=/usr                  →  PKG_CONFIG_PATH=/usr/lib/pkgconfig
+                                         meson setup -Dgf2x=enabled
+    NTL_GF2X_LIB=on                   →  -Dgf2x=enabled (default: disabled)
+
+Toggles:
+
+    NTL_THREADS=on|off                →  -Dthreads=true|false
+    NTL_EXCEPTIONS=on|off             →  -Dexceptions=true|false
+    NTL_THREAD_BOOST=on|off           →  -Dthread_boost=true|false
+    NTL_TLS_HACK=on|off               →  -Dtls_hack=true|false
+    NTL_DISABLE_LONGDOUBLE=on|off     →  -Ddisable_longdouble=true|false
+    NTL_LEGACY_NO_NAMESPACE=on|off    →  -Dlegacy_no_namespace=true|false
+    NTL_LEGACY_INPUT_ERROR=on|off     →  -Dlegacy_input_error=true|false
+    NTL_DISABLE_LONGLONG=on|off       →  removed (no equivalent in Meson;
+                                         affects rarely-exercised codepath)
+    NTL_DISABLE_LL_ASM=on|off         →  removed (same reason)
+    NTL_MAXIMIZE_SP_NBITS=on|off      →  removed (same reason)
+    NTL_LEGACY_SP_MULMOD=on|off       →  removed (same reason)
+    NTL_RANGE_CHECK=on|off            →  -Drange_check=true|false
+    NTL_SAFE_VECTORS=on|off           →  -Dsafe_vectors=true|false
+
+Tuning:
+
+    TUNE=auto                         →  removed.  Install the new Python
+                                         Wizard and run it explicitly:
+                                            pip install ./tools
+                                            ntl-wizard
+                                         Then build with -Dtune=host.
+                                         See doc/wizard.txt.
+    TUNE=generic                      →  -Dtune=generic
+    TUNE=x86                          →  -Dtune=x86
+    TUNE=linux-s390x                  →  -Dtune=linux-s390x
+    TUNE=off                          →  removed (use generic).
+
+Misc legacy controls:
+
+    ENABLE_LIBTOOL=on|off             →  removed.  Meson uses ninja
+                                         directly; libtool involvement is
+                                         opaque.
+    PREFER_PIC=on|off                 →  removed.  Always position-
+                                         independent for shared, never
+                                         for static.  This matches the
+                                         legacy default for SHARED=on.
+    ENABLE_RPATH=on|off               →  meson setup --no-rpath or rely
+                                         on system defaults.
+    LIBTOOL=/path/to/libtool          →  removed (no libtool involvement).
+    LDLIBS=-lm                        →  removed (Meson adds -lm via
+                                         dependency resolution).
+    AR=ar, ARFLAGS=ruv, RANLIB=ranlib →  removed (ninja/Meson resolves).
+    NOCONTRACT=on|off                 →  removed (Meson sets fp-contract
+                                         appropriately per compiler).
+
+Wizard internals (only legacy users touched these):
+
+    WIZARD=on                         →  removed; replaced by `ntl-wizard`.
+    WIZARD_HACK=...                   →  internal; gone.
+
+
+Additional DoConfig variables (rarely-touched controls):
+
+    CXXAUTOFLAGS=...                  →  removed.  Meson manages
+                                         per-target ABI flags via the
+                                         in-source ABI tables.
+    LIBTOOL_LINK_FLAGS=...            →  removed (no libtool involvement).
+    LIBTOOL_LINK_LIBS=...             →  removed (no libtool involvement).
+    SYS_PREFIX=/path                  →  removed shortcut; just set --prefix.
+    DEF_PREFIX=/path                  →  removed shortcut; just set --prefix.
+    GMP_INCDIR=/path                  →  removed; use CPPFLAGS/PKG_CONFIG_PATH.
+    GMP_LIBDIR=/path                  →  removed; use LDFLAGS/PKG_CONFIG_PATH.
+    MAKE_PROG=...                     →  removed (Meson uses ninja).
+    NTL_DISABLE_MOVE=on|off           →  removed (C++11 move semantics
+                                         are mandatory in NTL 12.0).
+    NTL_DISABLE_MOVE_ASSIGN=on|off    →  removed (same reason).
+    NTL_NO_INIT_TRANS=on|off          →  removed (legacy init paths gone).
+    NTL_CLEAN_INT=on|off              →  removed (rarely-exercised codepath).
+    NTL_CLEAN_PTR=on|off              →  removed (same reason).
+    NTL_UNSIGNED_LONG_LONG_TYPE=...   →  removed (NTL relies on standard
+                                         C++11 long long types now).
+    NTL_ENABLE_AVX_FFT=on|off         →  removed (set to 0 unconditionally
+                                         by the Meson build for portability;
+                                         re-enabling per-host is a candidate
+                                         follow-up feature).
+
+The following NTL_* constants (NTL_TBL_REM, NTL_SPMM_ULL,
+NTL_AVOID_BRANCHING, NTL_CRT_ALTCODE, NTL_CRT_ALTCODE_SMALL,
+NTL_FFT_BIGTAB, NTL_FFT_LAZYMUL) are no longer user-controlled in the
+build command line — they are tune-table values now. To override them,
+either run `ntl-wizard` (preferred) or hand-edit the relevant tune
+table under `src/meson/tune-tables/`.
+
+
+Section 3.  Worked examples
+---------------------------
+
+Example A — manual local install:
+
+    # Before:
+    cd src
+    ./configure SHARED=on PREFIX=$HOME/.local GMP_PREFIX=/usr
+    make -j$(nproc)
+    make install
+
+    # After:
+    meson setup --prefix=$HOME/.local -Dgmp=enabled build
+    meson compile -C build
+    meson install -C build
+
+
+Example B — Debian-style packaging (debian/rules excerpt):
+
+    # Before:
+    override_dh_auto_configure:
+        cd src && ./configure SHARED=on PREFIX=/usr \
+            LIBDIR='$$(PREFIX)/lib/x86_64-linux-gnu' \
+            GMP_PREFIX=/usr
+
+    override_dh_auto_build:
+        cd src && $(MAKE)
+
+    override_dh_auto_install:
+        cd src && $(MAKE) PREFIX=$(CURDIR)/debian/libntl-dev/usr install
+
+    # After:
+    override_dh_auto_configure:
+        meson setup --prefix=/usr --libdir=lib/x86_64-linux-gnu \
+                    --buildtype=release -Dgmp=enabled \
+                    obj-x86_64-linux-gnu
+
+    override_dh_auto_build:
+        meson compile -C obj-x86_64-linux-gnu
+
+    override_dh_auto_install:
+        DESTDIR=$(CURDIR)/debian/libntl-dev \
+            meson install -C obj-x86_64-linux-gnu
+
+
+Example C — Yggdrasil cross-compile recipe (build_tarballs.jl excerpt):
+
+    # Before (NTL <= 11.x):
+    script = raw"""
+    cd $WORKSPACE/srcdir/ntl/src
+    ./configure SHARED=on PREFIX=${prefix} ...
+    make -j${nproc}
+    make install
+    """
+
+    # After (NTL >= 12.0):
+    script = raw"""
+    cd $WORKSPACE/srcdir/ntl
+    case "$target" in
+        *-apple-darwin*)     ABI_TRIPLET=$(echo "$target" | sed -E 's/(apple-darwin)[0-9.]+$/\1/') ;;
+        *)                   ABI_TRIPLET="$target" ;;
+    esac
+    meson setup --cross-file="${MESON_TARGET_TOOLCHAIN}" \
+                --prefix="${prefix}" --libdir="${libdir}" \
+                --buildtype=release -Dabi_triplet="${ABI_TRIPLET}" \
+                -Dtune=default -Dgmp=enabled build
+    meson compile -C build
+    meson install -C build
+    install_license $WORKSPACE/srcdir/ntl/doc/copying.txt
+    """
+    build_tarballs(...; clang_use_lld=false, ...)
+
+
+Section 4.  Migrating from TUNE=auto
+------------------------------------
+
+The auto-tuning Wizard is reincarnated as a standalone Python tool.
+
+    # Before (NTL <= 11.x):
+    cd src && ./configure TUNE=auto && make
+
+    # After (NTL >= 12.0):
+    pip install ./tools
+    ntl-wizard --batch          # or `ntl-wizard` for the interactive TUI
+    meson setup -Dtune=host build
+    meson compile -C build
+    meson install -C build
+
+The Wizard runs on native hosts only.  Cross-compile builds use the
+static tune tables (-Dtune=generic by default for non-x86 targets,
+-Dtune=x86 for x86 family).  See doc/wizard.txt for the full Wizard
+reference.
+
+
+Section 5.  Help for downstream fork authors
+--------------------------------------------
+
+If you maintain a fork of NTL with downstream patches:
+
+   *  Patches that modified `src/Makefile`, `src/mfile`, or
+      `src/DoConfig` will not apply.  These files are gone.  Most
+      patches that changed compiler flags can be reimplemented via
+      Meson options or environment variables.
+
+   *  Patches that added or removed source files: update
+      `src/meson/sources.txt` instead of the legacy `mfile`.
+
+   *  Patches that altered the Wizard: port to
+      `tools/ntl_wizard/` (the Python package).  See
+      `specs/002-remove-legacy-build/contracts/ntl-wizard-cli.md`
+      for the supported extension points.
+
+   *  Patches that modified `src/cfile` (preprocessor toggles in
+      `config.h`): port to `src/config.h.in` and corresponding
+      Meson `configure_file` machinery in `src/meson.build`.
+
+If your patch does not have a clean path forward, open an issue
+referencing https://github.com/libntl/ntl/issues — the maintainers
+will help triage.
+
+
+Section 6.  Why we did this
+---------------------------
+
+   *  One build path is easier to maintain than two.  The legacy
+      Perl + Makefile + Wizard tree was several thousand lines of
+      code that had to stay in sync with the Meson tree.
+
+   *  Auto-tuning is preserved (as `ntl-wizard`), so we did not
+      lose user-facing capability — we just changed the entry point.
+
+   *  Meson cross-compile support is materially better than
+      `./configure`'s, and most NTL users get NTL via packagers
+      who cross-compile.
+
+   *  See specs/002-remove-legacy-build/spec.md for the full
+      design rationale.

@@ -156,9 +156,15 @@ int main()
       FFTRev1(B1p, B1p, L, r);
    }
 
+   // Unbuffered stderr so progress lines reach the parent process
+   // immediately when stderr is redirected through a pipe.
+   setbuf(stderr, NULL);
+   fprintf(stderr, "[Poly1] starting (nprimes=%d, calibrating iter…)\n", nprimes);
+
    iter = 1;
 
    do {
+     fprintf(stderr, "[Poly1 warmup] trying iter=%ld\n", iter);
      t = GetTime();
      for (j = 0; j < iter; j++) {
         for (r = 0; r < nprimes; r++) {
@@ -176,6 +182,7 @@ int main()
         }
      }
      t = GetTime() - t;
+     fprintf(stderr, "[Poly1 warmup] iter=%ld took %.3fs\n", iter, t);
      iter = 2*iter;
    } while(t < 1);
 
@@ -188,6 +195,8 @@ int main()
    long w;
 
    for (w = 0; w < 5; w++) {
+     fprintf(stderr, "[Poly1 pass %ld/5] starting (iter=%ld, nprimes=%d)\n",
+             w + 1, iter, nprimes);
      t = GetTime();
      for (j = 0; j < iter; j++) {
         for (r = 0; r < nprimes; r++) {
@@ -206,6 +215,7 @@ int main()
      }
      t = GetTime() - t;
      tvec[w] = t;
+     fprintf(stderr, "[Poly1 pass %ld/5] done in %.3fs\n", w + 1, t);
    }
 
    t = clean_data(tvec);

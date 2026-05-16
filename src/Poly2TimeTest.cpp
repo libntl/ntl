@@ -120,14 +120,19 @@ int main()
    ZZ_pXModRep modrep;
    ToZZ_pXModRep(modrep, a, 0, da);
 
+   setbuf(stderr, NULL);
+   fprintf(stderr, "[Poly2] starting (calibrating iter…)\n");
+
    iter = 1;
 
    do {
+     fprintf(stderr, "[Poly2 warmup] trying iter=%ld\n", iter);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         ToZZ_pXModRep(modrep, a, 0, da);
      }
      t = GetTime() - t;
+     fprintf(stderr, "[Poly2 warmup] iter=%ld took %.3fs\n", iter, t);
      iter = 2*iter;
    } while(t < 1);
 
@@ -139,13 +144,15 @@ int main()
    long w;
 
    for (w = 0; w < 5; w++) {
+     fprintf(stderr, "[Poly2 pass %ld/5] starting (iter=%ld)\n", w + 1, iter);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         ToZZ_pXModRep(modrep, a, 0, da);
      }
      t = GetTime() - t;
      tvec[w] = t;
-   } 
+     fprintf(stderr, "[Poly2 pass %ld/5] done in %.3fs\n", w + 1, t);
+   }
 
 
    t = clean_data(tvec);

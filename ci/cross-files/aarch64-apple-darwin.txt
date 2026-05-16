@@ -1,0 +1,16 @@
+# Cross-file for aarch64-apple-darwin (Apple Silicon macOS).
+# Toolchain: BinaryBuilder / osxcross with Apple Silicon SDK.
+
+[binaries]
+c     = 'aarch64-apple-darwin-clang'
+cpp   = 'aarch64-apple-darwin-clang++'
+ar    = 'aarch64-apple-darwin-ar'
+strip = 'aarch64-apple-darwin-strip'
+
+[host_machine]
+system     = 'darwin'
+cpu_family = 'aarch64'
+cpu        = 'aarch64'
+endian     = 'little'
+
+[properties]
