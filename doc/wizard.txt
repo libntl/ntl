@@ -1,0 +1,138 @@
+
+
+                            The NTL Python Wizard
+                            =====================
+
+
+This document covers `ntl-wizard`, the auto-tuning tool that produces a
+host-tuned `libntl` on a native build machine.  It replaces the legacy
+Perl `Wizard` removed in feature 002 (NTL 12.0).
+
+The Wizard is OPTIONAL.  If you do not run it, Meson uses the static
+tune tables (`generic`, `x86`, or `linux-s390x`) — that is fine for
+99 % of users.  Run the Wizard only when you need the best possible
+performance on a specific host and you are willing to wait 15-45 min
+for it to complete.
+
+
+Section 1.  Quick start
+-----------------------
+
+From the top of the NTL source tree, on a native Linux host:
+
+    pip install ./tools            # install the Wizard
+    ntl-wizard --batch             # run it (non-interactive)
+
+    # On completion you get a tune-table artifact at
+    #     src/meson/tune-tables/host-tuned.ini
+
+Then build NTL using the artifact:
+
+    meson setup --prefix=$HOME/.local -Dtune=host build
+    meson compile -C build
+    meson install -C build
+
+For an interactive terminal experience:
+
+    ntl-wizard                     # full TUI (Textual)
+
+
+Section 2.  What gets tuned
+---------------------------
+
+The Wizard measures and selects values for 10 NTL preprocessor
+parameters (every parameter the legacy `src/Wizard.cpp` tuned, no
+silent drops):
+
+   NTL_AVOID_BRANCHING       NTL_FFT_BIGTAB        NTL_GF2X_ALTCODE
+   NTL_CRT_ALTCODE           NTL_FFT_LAZYMUL       NTL_GF2X_ALTCODE1
+   NTL_CRT_ALTCODE_SMALL     NTL_GF2X_NOINLINE     NTL_SPMM_ULL
+   NTL_TBL_REM
+
+These are organized into four measurement phases (`poly1`, `poly2`,
+`poly3`, `gf2x`) corresponding to `src/Poly{1,2,3}TimeTest.cpp` and
+`src/GF2XTimeTest.cpp`, which the Wizard compiles and runs.
+
+
+Section 3.  Cross-compile is not supported
+------------------------------------------
+
+The Wizard runs measurement binaries on the build host.  If you try
+it from a cross-compile context (e.g. inside Yggdrasil, Debian's
+cross matrix, or a `--cross-file` Meson setup), the Wizard refuses
+with exit code 2 and a pointer to the static tables:
+
+   error: cross-compile context detected (build host x86_64,
+   target aarch64). Use a static tune table instead:
+       meson setup --cross-file=... -Dtune=generic build
+
+If you need tuned values for cross-compiled targets, run the Wizard
+on real target hardware and commit `src/meson/tune-tables/host-tuned.ini`
+to your fork.
+
+
+Section 4.  Common flags
+------------------------
+
+   --batch                 Non-interactive mode (CI / headless).
+   --dry-run               Validate setup, exit without measuring.
+   --resume                Continue a paused session.
+   --status                Print last session info (JSON), exit.
+   --target=TRIPLET        Override the cross-vs-native check target.
+   --phases=poly1,poly2    Run only a subset of phases.
+   --iterations=N          Run each measurement N times for stability.
+   --output=PATH           Override artifact path.
+
+See `ntl-wizard --help` for the full list.
+
+
+Section 5.  Exit codes
+----------------------
+
+   0    Success — artifact written.
+   1    Generic error.
+   2    Cross-vs-native mismatch.
+   3    A timing program failed to compile.
+   4    A timing binary crashed.
+   5    Measurement noise too high to commit results.
+   6    Resumable session has a different host fingerprint.
+   130  Interrupted by user (Ctrl-C); session saved, use --resume.
+
+
+Section 6.  Reproducibility
+---------------------------
+
+By default the artifact at `src/meson/tune-tables/host-tuned.ini` is
+gitignored.  If you want reproducible host-tuned builds across a team
+or fork:
+
+   1.  Run the Wizard on the reference host.
+   2.  Remove the artifact from `.gitignore` in your fork, OR commit
+       it under a different name and pass `-Dtune_artifact=<path>`
+       to Meson.
+   3.  Re-run the Wizard whenever you upgrade hardware, compiler, or
+       NTL version (the artifact carries `[provenance]` metadata for
+       audit purposes; mismatched versions are rejected at configure
+       time).
+
+
+Section 7.  Limitations
+-----------------------
+
+   *  The Wizard requires Python 3.10+ and a working C++ toolchain.
+   *  Total runtime is roughly comparable to the legacy Wizard
+      (15-45 min on a modern x86_64 desktop).
+   *  TUI mode requires a real terminal supporting ANSI escapes
+      (most modern terminals; not all CI runners).  Use `--batch`
+      whenever there is no TTY.
+   *  The Wizard does NOT do host-CPU feature detection at NTL runtime.
+      It only selects build-time parameter values.  Adding runtime
+      autodetection is a candidate follow-up feature.
+
+
+Section 8.  Reporting bugs
+--------------------------
+
+   *  General NTL bugs:           https://github.com/libntl/ntl/issues
+   *  Wizard bugs:                tag with "ntl-wizard"
+   *  Cross-compile suggestions:  reference issue #8
