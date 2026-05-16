@@ -22,8 +22,11 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "tools"
-SPECS_DIR = REPO_ROOT / "specs" / "002-remove-legacy-build"
-CAPTURED_PARAMS_FILE = SPECS_DIR / "captured-legacy-params.txt"
+# Captured legacy-Wizard parameter snapshot. The original lives at
+# specs/002-remove-legacy-build/captured-legacy-params.txt but specs/
+# is excluded from git per CLAUDE.md; the snapshot copy under tests/
+# is the committed source of truth for CI.
+CAPTURED_PARAMS_FILE = Path(__file__).resolve().parent / "_legacy_params_snapshot.txt"
 
 
 @pytest.fixture(scope="session")
@@ -182,6 +185,15 @@ def run_wizard():
              cwd: Path | None = None) -> tuple[int, str, str]:
         cmd = [sys.executable, "-m", "ntl_wizard", *args]
         env = os.environ.copy()
+        # Force deterministic, ANSI-free output for stdout/stderr
+        # assertions. Rich/Typer apply colored TTY-aware rendering by
+        # default; under subprocess capture in CI the terminal width
+        # heuristics still inject escape codes that split tokens like
+        # `--batch` into `-` + `-batch` with ANSI between them, breaking
+        # naive `'--batch' in stdout` checks.
+        env.setdefault("NO_COLOR", "1")
+        env.setdefault("TERM", "dumb")
+        env.setdefault("COLUMNS", "200")
         if env_overrides:
             env.update(env_overrides)
         # Ensure the in-tree package is importable. We rely on the

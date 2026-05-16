@@ -8,12 +8,14 @@ set -eu
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-CAPTURED="specs/002-remove-legacy-build/captured-doconfig-options.txt"
+# Committed snapshot of pre-deletion DoConfig options (the original
+# lives under specs/ which is excluded from git per CLAUDE.md).
+CAPTURED="tests/meson/_doconfig_options_snapshot.txt"
 DOC="doc/migration-from-makefile.txt"
 
 if [ ! -f "$CAPTURED" ]; then
-    echo "SKIP: $CAPTURED missing (run T044 first)"
-    exit 0
+    echo "FAIL: snapshot file $CAPTURED missing — re-run T044 and commit the snapshot"
+    exit 1
 fi
 if [ ! -f "$DOC" ]; then
     echo "FAIL: $DOC missing (T047)"
