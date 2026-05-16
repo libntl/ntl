@@ -322,6 +322,21 @@ def run(args: argparse.Namespace) -> int:
                             line = f"  [{idx+1}/{total}] compiling…  params={payload}"
                         elif stage == "run":
                             line = f"  [{idx+1}/{total}] running…    params={payload}"
+                        elif stage == "tick":
+                            # payload is (stage_name, elapsed_seconds)
+                            sub_stage, elapsed = payload
+                            line = (
+                                f"  [{idx+1}/{total}] {sub_stage} still running "
+                                f"({elapsed:.0f}s elapsed)…"
+                            )
+                        elif stage == "line":
+                            # payload is (stage_name, output_line)
+                            # Live streaming of the subprocess's
+                            # stdout/stderr (compile warnings,
+                            # linker messages, etc.). Indent so it's
+                            # visually distinct from the wrapper logs.
+                            sub_stage, raw = payload
+                            line = f"    │ {raw}"
                         elif stage == "done":
                             line = (
                                 f"  [{idx+1}/{total}] done in "

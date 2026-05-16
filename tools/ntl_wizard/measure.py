@@ -15,10 +15,11 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping, Optional
 
 from .parameters import PARAMETERS_BY_NAME, ValueT
 
@@ -120,10 +121,89 @@ class MeasureContext:
         self.sub_build_dir = Path(self.sub_build_dir)
 
 
+def _run_with_streaming(
+    cmd: list[str],
+    timeout_seconds: int,
+    line_callback: Optional[Callable[[str], None]] = None,
+    tick_callback: Optional[Callable[[float], None]] = None,
+    tick_interval_seconds: float = 3.0,
+) -> subprocess.CompletedProcess:
+    """Run `cmd` similar to subprocess.run, but:
+    - stream each stdout/stderr line to `line_callback` as it arrives
+      (useful for showing live compile output in the TUI),
+    - call `tick_callback(elapsed)` every ~tick_interval_seconds even
+      if the child is silent (heartbeat for the "is it stuck?" case),
+    - kill + raise subprocess.TimeoutExpired at `timeout_seconds`.
+
+    stderr is merged into stdout so the caller sees the natural
+    interleaving (gcc warnings + linker output + program output).
+    Returns a CompletedProcess whose `stdout` holds the full merged
+    output (joined from the streamed lines).
+    """
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # merge for easier streaming
+        text=True,
+        bufsize=1,  # line-buffered
+    )
+
+    collected: list[str] = []
+
+    def _reader() -> None:
+        # Drain the child's stdout line by line. Runs in a daemon
+        # thread; survives any callback exception.
+        try:
+            assert proc.stdout is not None
+            for raw in proc.stdout:
+                collected.append(raw)
+                if line_callback:
+                    try:
+                        line_callback(raw.rstrip("\n"))
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    reader_thread = threading.Thread(target=_reader, daemon=True)
+    reader_thread.start()
+
+    last_tick = start
+    try:
+        while True:
+            rc = proc.poll()
+            now = time.monotonic()
+            if rc is not None:
+                break
+            elapsed = now - start
+            if elapsed > timeout_seconds:
+                proc.kill()
+                proc.wait(timeout=5)
+                reader_thread.join(timeout=2)
+                raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout_seconds)
+            if tick_callback and (now - last_tick) >= tick_interval_seconds:
+                try:
+                    tick_callback(elapsed)
+                except Exception:
+                    pass
+                last_tick = now
+            time.sleep(0.1)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+    reader_thread.join(timeout=2)
+    return subprocess.CompletedProcess(
+        cmd, proc.returncode, "".join(collected), ""
+    )
+
+
 def _build_one(
     context: MeasureContext,
     phase: MeasurementPhase,
     parameter_set: Mapping[str, ValueT],
+    tick_callback: Optional[Callable[[float], None]] = None,
+    line_callback: Optional[Callable[[str], None]] = None,
 ) -> Path:
     """Compile the phase's timing program with `parameter_set` flags.
     Returns the path to the built binary. Raises CompileFailure on
@@ -153,11 +233,18 @@ def _build_one(
         cmd.extend([f"-Wl,-rpath,{libntl.parent}", str(libntl)])
     # else: leave the user to pre-build libntl. CompileFailure will fire below if missing.
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    try:
+        result = _run_with_streaming(cmd, timeout_seconds=600,
+                                     tick_callback=tick_callback,
+                                     line_callback=line_callback)
+    except subprocess.TimeoutExpired as exc:
+        raise CompileFailure(
+            f"Compile of {phase.timing_program} timed out after 600s"
+        ) from exc
     if result.returncode != 0:
         raise CompileFailure(
             f"Compile failed for {phase.id} with params {dict(parameter_set)}:\n"
-            f"{result.stderr[:2000]}"
+            f"{result.stdout[-2000:]}"
         )
     if not binary.exists():
         raise CompileFailure(
@@ -166,18 +253,28 @@ def _build_one(
     return binary
 
 
-def _run_one(binary: Path, repeats: int = 1) -> tuple[float, float]:
+def _run_one(
+    binary: Path,
+    repeats: int = 1,
+    tick_callback: Optional[Callable[[float], None]] = None,
+    line_callback: Optional[Callable[[str], None]] = None,
+) -> tuple[float, float]:
     """Execute the timing binary `repeats` times. Return
     (mean_wall_clock_seconds, stddev_seconds)."""
     times: list[float] = []
     for _ in range(repeats):
-        result = subprocess.run(
-            [str(binary)], capture_output=True, text=True, timeout=900,
-        )
+        try:
+            result = _run_with_streaming([str(binary)], timeout_seconds=900,
+                                         tick_callback=tick_callback,
+                                         line_callback=line_callback)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeFailure(
+                f"Timing binary {binary.name} timed out after 900s"
+            ) from exc
         if result.returncode != 0:
             raise RuntimeFailure(
                 f"Timing binary {binary.name} exited {result.returncode}:\n"
-                f"{result.stderr[:1000]}"
+                f"{result.stdout[-1000:]}"
             )
         # legacy programs emit microseconds as an integer
         microseconds = _parse_timing_stdout(result.stdout)
@@ -221,14 +318,32 @@ def run_phase(
     context.sub_build_dir.mkdir(parents=True, exist_ok=True)
     measurements: list[Measurement] = []
     total = len(parameter_sets)
+    def _make_tick(stage_name: str, idx_: int) -> Optional[Callable[[float], None]]:
+        if not progress_callback:
+            return None
+        return lambda elapsed, _i=idx_, _s=stage_name: progress_callback(
+            _i, total, "tick", (_s, elapsed)
+        )
+
+    def _make_line(stage_name: str, idx_: int) -> Optional[Callable[[str], None]]:
+        if not progress_callback:
+            return None
+        return lambda line, _i=idx_, _s=stage_name: progress_callback(
+            _i, total, "line", (_s, line)
+        )
+
     for idx, params in enumerate(parameter_sets):
         if progress_callback:
             progress_callback(idx, total, "compile", params)
-        binary = _build_one(context, phase, params)
+        binary = _build_one(context, phase, params,
+                            tick_callback=_make_tick("compile", idx),
+                            line_callback=_make_line("compile", idx))
         try:
             if progress_callback:
                 progress_callback(idx, total, "run", params)
-            mean, stddev = _run_one(binary, repeats=repeats)
+            mean, stddev = _run_one(binary, repeats=repeats,
+                                    tick_callback=_make_tick("run", idx),
+                                    line_callback=_make_line("run", idx))
         finally:
             try:
                 binary.unlink()
