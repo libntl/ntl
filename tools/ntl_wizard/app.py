@@ -314,14 +314,34 @@ def run(args: argparse.Namespace) -> int:
                     candidates = candidate_sets_for_phase(pid)
                     self._log(f"phase {pid}: {len(candidates)} candidate(s) to measure")
 
+                    # Per-candidate progress callback — bounces back
+                    # to the UI loop via call_from_thread so the user
+                    # sees live updates during a slow compile/run.
+                    def _on_progress(idx: int, total: int, stage: str, payload) -> None:
+                        if stage == "compile":
+                            line = f"  [{idx+1}/{total}] compiling…  params={payload}"
+                        elif stage == "run":
+                            line = f"  [{idx+1}/{total}] running…    params={payload}"
+                        elif stage == "done":
+                            line = (
+                                f"  [{idx+1}/{total}] done in "
+                                f"{payload.wall_clock_seconds:.3f}s  "
+                                f"(stddev {payload.noise_estimate:.3f}s)"
+                            )
+                        else:
+                            line = f"  [{idx+1}/{total}] {stage}"
+                        self.app.call_from_thread(self._log, line)
+
                     try:
                         # asyncio.to_thread: blocking subprocess work
                         # runs in a worker thread so the event loop
-                        # keeps pumping (no UI freeze).
+                        # keeps pumping (no UI freeze). The progress
+                        # callback above feeds live updates back.
                         measurements = await asyncio.to_thread(
                             run_phase,
                             context, phase, candidates,
                             repeats=iterations,
+                            progress_callback=_on_progress,
                         )
                     except (CompileFailure, RuntimeFailure, MeasurementNoiseTooHigh) as exc:
                         kind = type(exc).__name__

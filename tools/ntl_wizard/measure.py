@@ -198,6 +198,7 @@ def run_phase(
     *,
     repeats: int = 1,
     noise_threshold: float = 0.20,
+    progress_callback=None,
 ) -> list[Measurement]:
     """Compile + run the given phase once per parameter set.
 
@@ -208,12 +209,25 @@ def run_phase(
     - MeasurementNoiseTooHigh if the relative stddev across repeats
       exceeds `noise_threshold` (default 20% — generous; the legacy
       WizardAux had no explicit noise gate).
+
+    `progress_callback`, if provided, is called as
+        progress_callback(index, total, stage, payload)
+    where `stage` ∈ {"compile", "run", "done"} and `payload` is the
+    parameter set being measured (for "compile" / "run") or the
+    Measurement instance (for "done"). It is invoked from the calling
+    thread; if the caller is the Textual worker thread, the callback
+    should use call_from_thread to bounce back to the UI loop.
     """
     context.sub_build_dir.mkdir(parents=True, exist_ok=True)
     measurements: list[Measurement] = []
-    for params in parameter_sets:
+    total = len(parameter_sets)
+    for idx, params in enumerate(parameter_sets):
+        if progress_callback:
+            progress_callback(idx, total, "compile", params)
         binary = _build_one(context, phase, params)
         try:
+            if progress_callback:
+                progress_callback(idx, total, "run", params)
             mean, stddev = _run_one(binary, repeats=repeats)
         finally:
             try:
@@ -225,12 +239,15 @@ def run_phase(
                 f"Phase {phase.id} param set {params}: "
                 f"stddev/mean = {stddev/mean:.2f} exceeds {noise_threshold:.2f}"
             )
-        measurements.append(Measurement(
+        m = Measurement(
             parameter_set=dict(params),
             wall_clock_seconds=mean,
             iteration_count=repeats,
             noise_estimate=stddev,
-        ))
+        )
+        measurements.append(m)
+        if progress_callback:
+            progress_callback(idx, total, "done", m)
     return measurements
 
 
