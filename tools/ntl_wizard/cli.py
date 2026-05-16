@@ -331,11 +331,46 @@ def _run_tui(
             _err(
                 f"libntl shared library not found under {source_dir}/build/src/. "
                 f"Build NTL first so the Wizard can link timing programs against it:\n"
-                f"    meson setup {source_dir}/build\n"
+                f"    meson setup --buildtype=release {source_dir}/build\n"
                 f"    meson compile -C {source_dir}/build\n"
-                f"Then re-run ntl-wizard."
+                f"Then re-run ntl-wizard.\n"
+                f"IMPORTANT: use --buildtype=release. The Meson default is "
+                f"debug (-O0), which makes the timing benchmarks 5-10x slower "
+                f"than they should be and the Wizard will take an unreasonable "
+                f"amount of time to complete."
             )
             return EXIT_GENERIC
+
+        # Probe the buildtype Meson actually used. The default 'debug'
+        # buildtype produces -O0 binaries; the Wizard's timing
+        # measurements become 5-10x slower and the user thinks the
+        # Wizard is hung. Issue a non-fatal warning so the user can
+        # rebuild before committing to a 30-minute run.
+        meson_info = source_dir / "build" / "meson-info" / "intro-buildoptions.json"
+        if meson_info.exists():
+            try:
+                import json as _json
+                opts = _json.loads(meson_info.read_text(encoding="utf-8"))
+                bt = next(
+                    (o["value"] for o in opts if o.get("name") == "buildtype"),
+                    None,
+                )
+                if bt is not None and bt != "release" and bt != "debugoptimized":
+                    print(
+                        f"warning: libntl was built with buildtype={bt!r} "
+                        f"(no optimization). The Wizard's timing measurements "
+                        f"will be 5-10x slower than they should be. To get "
+                        f"meaningful results in reasonable time:\n"
+                        f"    /bin/rm -rf {source_dir}/build\n"
+                        f"    meson setup --buildtype=release {source_dir}/build\n"
+                        f"    meson compile -C {source_dir}/build\n"
+                        f"Continue anyway? (Ctrl-C to abort, or wait 5s.)",
+                        file=sys.stderr,
+                    )
+                    import time as _time
+                    _time.sleep(5)
+            except Exception:
+                pass  # warning is best-effort
 
     # 5. Textual must be importable.
     try:

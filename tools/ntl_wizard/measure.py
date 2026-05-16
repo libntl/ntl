@@ -233,6 +233,17 @@ def _build_one(
         cmd.extend([f"-Wl,-rpath,{libntl.parent}", str(libntl)])
     # else: leave the user to pre-build libntl. CompileFailure will fire below if missing.
 
+    # Echo the compile invocation up-front: gcc/clang is silent on a
+    # clean successful build (only diagnostics appear). Without this
+    # echo the user sees only "compiling…" + elapsed ticks and might
+    # think nothing is happening.
+    if line_callback:
+        try:
+            line_callback("$ " + " ".join(cmd))
+        except Exception:
+            pass
+
+    compile_start = time.monotonic()
     try:
         result = _run_with_streaming(cmd, timeout_seconds=600,
                                      tick_callback=tick_callback,
@@ -241,6 +252,7 @@ def _build_one(
         raise CompileFailure(
             f"Compile of {phase.timing_program} timed out after 600s"
         ) from exc
+    compile_elapsed = time.monotonic() - compile_start
     if result.returncode != 0:
         raise CompileFailure(
             f"Compile failed for {phase.id} with params {dict(parameter_set)}:\n"
@@ -250,6 +262,11 @@ def _build_one(
         raise CompileFailure(
             f"Compiler reported success but binary {binary} not produced"
         )
+    if line_callback:
+        try:
+            line_callback(f"compile OK ({compile_elapsed:.1f}s)")
+        except Exception:
+            pass
     return binary
 
 

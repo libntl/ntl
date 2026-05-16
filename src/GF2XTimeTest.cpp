@@ -98,14 +98,19 @@ int main()
    for (k = 0; k < s; k++) mul(c, a[k], b[k]);
 
 
+   setbuf(stderr, NULL);
+   fprintf(stderr, "[GF2X] starting (s=%ld, calibrating iter…)\n", s);
+
    iter = 1;
 
    do {
+     fprintf(stderr, "[GF2X warmup] trying iter=%ld\n", iter);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         for (j = 0; j < 1; j++) for (k = 0; k < s; k++) mul(c, a[k], b[k]);
      }
      t = GetTime() - t;
+     fprintf(stderr, "[GF2X warmup] iter=%ld took %.3fs\n", iter, t);
      iter = 2*iter;
    } while(t < 1);
 
@@ -117,12 +122,15 @@ int main()
    long w;
 
    for (w = 0; w < 5; w++) {
+     fprintf(stderr, "[GF2X pass %ld/5] starting (iter=%ld, s=%ld)\n",
+             w + 1, iter, s);
      t = GetTime();
      for (i = 0; i < iter; i++) {
         for (j = 0; j < 1; j++) for (k = 0; k < s; k++) mul(c, a[k], b[k]);
      }
      t = GetTime() - t;
      tvec[w] = t;
+     fprintf(stderr, "[GF2X pass %ld/5] done in %.3fs\n", w + 1, t);
    }
 
 

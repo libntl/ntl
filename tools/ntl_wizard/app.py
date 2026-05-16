@@ -312,46 +312,56 @@ def run(args: argparse.Namespace) -> int:
                     session.save()
 
                     candidates = candidate_sets_for_phase(pid)
-                    self._log(f"phase {pid}: {len(candidates)} candidate(s) to measure")
+                    # Phase-budget header so the user has a rough
+                    # sense of expected duration.
+                    if len(candidates) > 0:
+                        per_cand = phase.expected_duration_seconds // max(1, len(candidates))
+                        self._log(
+                            f"phase {pid}: {len(candidates)} candidate(s) to measure"
+                            f"  (expected ~{phase.expected_duration_seconds}s total, "
+                            f"~{per_cand}s per candidate)"
+                        )
+                    else:
+                        self._log(f"phase {pid}: 0 candidates (skipped)")
 
-                    # Per-candidate progress callback — bounces back
-                    # to the UI loop via call_from_thread so the user
-                    # sees live updates during a slow compile/run.
-                    def _on_progress(idx: int, total: int, stage: str, payload) -> None:
+                    # Per-candidate progress callback — bounces each
+                    # event back to the Textual event loop via
+                    # call_from_thread, so live updates appear in the
+                    # Log widget while the measurement work runs in a
+                    # worker thread.
+                    def _on_progress(idx: int, total_c: int, stage: str, payload) -> None:
                         if stage == "compile":
-                            line = f"  [{idx+1}/{total}] compiling…  params={payload}"
+                            line = f"  [{idx+1}/{total_c}] compiling…  params={payload}"
                         elif stage == "run":
-                            line = f"  [{idx+1}/{total}] running…    params={payload}"
+                            line = f"  [{idx+1}/{total_c}] running…    params={payload}"
                         elif stage == "tick":
-                            # payload is (stage_name, elapsed_seconds)
                             sub_stage, elapsed = payload
                             line = (
-                                f"  [{idx+1}/{total}] {sub_stage} still running "
+                                f"  [{idx+1}/{total_c}] {sub_stage} still running "
                                 f"({elapsed:.0f}s elapsed)…"
                             )
                         elif stage == "line":
-                            # payload is (stage_name, output_line)
-                            # Live streaming of the subprocess's
-                            # stdout/stderr (compile warnings,
-                            # linker messages, etc.). Indent so it's
-                            # visually distinct from the wrapper logs.
+                            # Live streaming of subprocess stdout/stderr
+                            # (gcc/clang output, our instrumented
+                            # `[Poly1 pass X/5]` lines, etc.). Indent
+                            # so it's visually distinct from the
+                            # wrapper logs.
                             sub_stage, raw = payload
                             line = f"    │ {raw}"
                         elif stage == "done":
                             line = (
-                                f"  [{idx+1}/{total}] done in "
+                                f"  [{idx+1}/{total_c}] done in "
                                 f"{payload.wall_clock_seconds:.3f}s  "
                                 f"(stddev {payload.noise_estimate:.3f}s)"
                             )
                         else:
-                            line = f"  [{idx+1}/{total}] {stage}"
+                            line = f"  [{idx+1}/{total_c}] {stage}"
                         self.app.call_from_thread(self._log, line)
 
                     try:
-                        # asyncio.to_thread: blocking subprocess work
-                        # runs in a worker thread so the event loop
-                        # keeps pumping (no UI freeze). The progress
-                        # callback above feeds live updates back.
+                        # asyncio.to_thread keeps Textual's event loop
+                        # responsive while the synchronous compile +
+                        # run subprocess work runs in a worker thread.
                         measurements = await asyncio.to_thread(
                             run_phase,
                             context, phase, candidates,
@@ -535,9 +545,16 @@ def run(args: argparse.Namespace) -> int:
                 }
                 write_artifact(output_path, self.app.candidate_values, provenance)
                 _trace(f"wrote artifact at {output_path}")
+                # Hand the paths off to the CLI wrapper so it prints
+                # the next-steps message on the REAL terminal after
+                # the TUI exits — anything we put in the Log widget
+                # vanishes with the alternate-screen when the user
+                # presses Q.
+                self.app.wrote_artifact_path = Path(output_path)
+                self.app.wrote_source_dir = Path(source_dir)
                 self.query_one("#review-status", Static).update(
-                    f"[b green]Written:[/b green] {output_path}\n"
-                    f"Press Q to quit."
+                    f"[b green]✓ Wrote tune artifact:[/b green] {output_path}\n"
+                    f"Press Q to quit — next-steps will print on the terminal."
                 )
                 self.app.exit_code = EXIT_OK
             except Exception as exc:
@@ -594,6 +611,13 @@ def run(args: argparse.Namespace) -> int:
             self.iterations: int = max(1, cli_args.iterations)
             self.candidate_values: Optional[dict] = None
             self.session: Optional[WizardSession] = None
+            # Set by ReviewScreen.action_write on success. Read by the
+            # CLI wrapper AFTER app.run() returns so the next-steps
+            # message is printed on the real terminal (and therefore
+            # remains in the user's shell scrollback) rather than
+            # vanishing with the TUI alternate-screen.
+            self.wrote_artifact_path: Optional[Path] = None
+            self.wrote_source_dir: Optional[Path] = None
 
         def on_mount(self) -> None:
             _trace("WizardApp.on_mount; pushing SetupScreen")
@@ -606,4 +630,41 @@ def run(args: argparse.Namespace) -> int:
 
     app = WizardApp(args)
     app.run()
+
+    # Print next-steps on the real terminal AFTER Textual has torn
+    # down the alternate screen. This way the message persists in the
+    # user's shell scrollback. Skipped if the user didn't write an
+    # artifact (e.g. quit from setup, discarded review).
+    if app.wrote_artifact_path is not None and app.exit_code == EXIT_OK:
+        rel_build = "build"
+        # ANSI: bold green for headings, cyan for commands. Falls back
+        # to plain text on terminals that don't honor it.
+        BOLD = "\033[1m"
+        GREEN = "\033[32m"
+        CYAN  = "\033[36m"
+        DIM   = "\033[2m"
+        RESET = "\033[0m"
+        print()
+        print(f"{BOLD}{GREEN}✓ ntl-wizard wrote the tune artifact:{RESET}")
+        print(f"  {app.wrote_artifact_path}")
+        print()
+        print(f"{BOLD}Next steps{RESET} {DIM}(from {app.wrote_source_dir}){RESET}:")
+        print()
+        print(f"  1. Rebuild NTL with the host-tuned table:")
+        print(f"       {CYAN}meson setup --buildtype=release "
+              f"-Dtune=host {rel_build}{RESET}")
+        print(f"       {CYAN}meson compile -C {rel_build}{RESET}")
+        print()
+        print(f"  2. (optional) Verify with the test suite:")
+        print(f"       {CYAN}meson test -C {rel_build}{RESET}")
+        print()
+        print(f"  3. Install where you want it:")
+        print(f"       {CYAN}meson install -C {rel_build} "
+              f"--destdir <target>{RESET}")
+        print()
+        print(f"{DIM}The host-tuned.ini lives under src/meson/tune-tables/ "
+              f"and is gitignored by default.{RESET}")
+        print(f"{DIM}If you want this tuning to be reproducible across a "
+              f"team, commit it explicitly.{RESET}")
+        print()
     return app.exit_code
