@@ -40,8 +40,12 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-13       # Phase 6 (US4): Intel macOS native build.
-          - macos-latest   # Phase 6 (US4): Apple Silicon macOS native build.
+          - macos-latest   # Apple Silicon macOS native build.
+          # macos-13 (Intel) intentionally not in the matrix: GitHub
+          # has been deprecating Intel runners and the s-celles fork
+          # has had persistent runner-unavailable failures. Apple
+          # Silicon coverage via macos-latest is sufficient for the
+          # supported-target matrix.
           # Phase 7 (US5) will add windows-latest with msys2 + MinGW-w64.
           # Disabled until the workflow's msys2 setup is exercised; see
           # the placeholder step below.
