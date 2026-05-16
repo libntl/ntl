@@ -75,12 +75,11 @@ jobs:
             mingw-w64-x86_64-gmp
             mingw-w64-x86_64-pkgconf
 
-      # --- Sources sync check (lint moved inline for Phase 3 MVP) --------
+      # --- Version sync check (cohabitation source-sync tools removed
+      # in feature 002; only sync-version remains). -----------------------
       - name: Verify generated artifacts are in sync
         if: runner.os == 'Linux'
         run: |
-          python3 tools/check-sources-in-sync.py
-          python3 tools/check-cfile-in-sync.py
           python3 tools/sync-version.py --check
 
       # --- Build & test ---------------------------------------------------
@@ -111,12 +110,14 @@ jobs:
         shell: msys2 {0}
         run: meson test -C build --print-errorlogs --timeout-multiplier 2
 
-      # --- Parity check (only meaningful on Linux x86_64 where both paths
-      #     are exercised). Validates SC-002. ---------------------------
-      - name: Verify symbol parity against Makefile build
+      # --- Post-feature-002 guards ----------------------------------------
+      - name: No legacy build artifacts (FR-001)
         if: runner.os == 'Linux' && matrix.os == 'ubuntu-latest'
-        run: |
-          bash tests/meson/test_symbol_parity_native.sh
+        run: bash tests/meson/test_no_legacy_artifacts.sh
+
+      - name: Legacy entry points gone (FR-013)
+        if: runner.os == 'Linux' && matrix.os == 'ubuntu-latest'
+        run: bash tests/meson/test_legacy_entry_points_gone.sh
 
       # --- Logs upload ----------------------------------------------------
       - name: Upload meson-logs
@@ -353,11 +354,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends python3
 
-      - name: sources.txt in sync with mfile
-        run: python3 tools/check-sources-in-sync.py
-
-      - name: config.h.in in sync with cfile
-        run: python3 tools/check-cfile-in-sync.py
+      # Source-sync and cohabitation guards removed in feature 002
+      # (the cohabitation tooling they checked no longer exists).
 
       - name: version.txt in sync with version.h
         run: python3 tools/sync-version.py --check
@@ -365,8 +363,34 @@ jobs:
       - name: CHANGELOG.md in Keep a Changelog format
         run: bash tests/meson/test_changelog_format.sh
 
-      - name: Cohabitation — no protected legacy file modified
-        run: bash tests/meson/test_no_modified_files.sh
-
       - name: Commit trailer + AI-disclosure invariants
         run: bash tools/check-commit-trailer.sh
+
+  # ---------------------------------------------------------------------
+  # ntl-wizard: Python Wizard test suite (T015, US3).
+  # Runs the pytest unit tests under tests/ntl_wizard/. The @pytest.mark.slow
+  # tests (real Meson sub-build) are excluded from PR runs; only the
+  # scheduled-weekly job (added in Phase 6) runs them.
+  #
+  # ALLOWED TO FAIL until Phase 3 lands (Wizard implementation). Once
+  # T035 / T055 land, this job becomes gating (drop `continue-on-error`).
+  # ---------------------------------------------------------------------
+  ntl-wizard-tests:
+    name: ntl-wizard-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ntl-wizard (in-tree)
+        run: |
+          pip install --upgrade pip
+          pip install ./tools[dev]
+
+      - name: Run ntl-wizard pytest suite (fast tests only)
+        run: |
+          pytest tests/ntl_wizard/ -v --tb=short
