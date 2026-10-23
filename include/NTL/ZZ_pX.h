@@ -548,6 +548,13 @@ inline ZZ_pX power(const ZZ_pX& a, long e)
    { ZZ_pX x; power(x, a, e); NTL_OPT_RETURN(ZZ_pX, x); }
 
 
+void ExpTrunc(ZZ_pX& x, const ZZ_pX& a, long n);
+inline ZZ_pX ExpTrunc(const ZZ_pX& a, long n)
+   { ZZ_pX x; ExpTrunc(x, a, n); NTL_OPT_RETURN(ZZ_pX, x); }
+
+
+
+
 // The following data structures and routines allow one
 // to hand-craft various algorithms, using the FFT convolution
 // algorithms directly.
